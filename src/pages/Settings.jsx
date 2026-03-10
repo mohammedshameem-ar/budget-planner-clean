@@ -212,7 +212,8 @@ const Settings = () => {
 
             // Check if the backend server is not running
             if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('fetch'))) {
-                alert('❌ Cannot reach backend server.\n\nPlease check if your Render backend is running and that your VITE_API_URL is correctly configured.');
+                const API_BASE = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.onrender.com/api';
+                alert(`❌ Cannot reach backend server at: ${API_BASE}\n\nPlease check if your Render backend is running and that your VITE_API_URL is correctly configured.`);
                 return;
             }
 
@@ -772,7 +773,7 @@ const Settings = () => {
                         } catch (err) {
                             console.error('Re-subscribe failed:', err);
                             if (err.message && err.message.includes('fetch')) {
-                                alert('❌ Backend unreachable. If deployed, check your server status and FRONTEND_URL/VITE_API_URL settings.');
+                                 alert(`❌ Backend unreachable at: ${API_BASE}\n\nIf deployed, check your server status and FRONTEND_URL/VITE_API_URL settings.`);
                             } else {
                                 alert('Re-subscribe failed: ' + err.message);
                             }

@@ -8,26 +8,19 @@ require('./scheduler'); // Start the scheduler
 
 const app = express();
 
-// Configure CORS for production - allows local dev and hosted domain
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:4173',
-    'https://news-9d3d2.web.app',
-    'https://news-9d3d2.firebaseapp.com',
-    process.env.FRONTEND_URL
-].filter(Boolean);
-
+// Relaxed CORS for debugging production issues
 app.use(cors({
-    origin: (origin, callback) => {
-        // More permissive for production if frontend URL is unknown
-        if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.web.app') || origin.endsWith('.firebaseapp.com')) {
-            callback(null, true);
-        } else {
-            console.warn('[CORS] Origin rejected:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    }
+    origin: true, // Echoes the request origin, allowing anything
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Log all requests to see what hits the server
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.get('origin')}`);
+    next();
+});
 
 app.use(bodyParser.json());
 
