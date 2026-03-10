@@ -12,14 +12,18 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:4173',
+    'https://news-9d3d2.web.app',
+    'https://news-9d3d2.firebaseapp.com',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        // More permissive for production if frontend URL is unknown
+        if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.web.app') || origin.endsWith('.firebaseapp.com')) {
             callback(null, true);
         } else {
+            console.warn('[CORS] Origin rejected:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     }

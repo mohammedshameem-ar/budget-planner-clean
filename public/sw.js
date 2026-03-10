@@ -69,7 +69,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Do NOT intercept cross-origin requests (e.g. calls to localhost:5000 backend)
+    // Do NOT intercept cross-origin requests (e.g. calls to the backend API)
     // Let them fail naturally so the app can show its own error message
     if (url.origin !== location.origin) {
         return;

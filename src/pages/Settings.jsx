@@ -212,7 +212,7 @@ const Settings = () => {
 
             // Check if the backend server is not running
             if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('fetch'))) {
-                alert('❌ Cannot reach backend server at localhost:5000.\n\nPlease open a new terminal and run:\n\ncd server\nnode index.js\n\nThen try again.');
+                alert('❌ Cannot reach backend server.\n\nPlease check if your Render backend is running and that your VITE_API_URL is correctly configured.');
                 return;
             }
 
@@ -753,7 +753,7 @@ const Settings = () => {
                     onClick={async () => {
                         if (!user) return alert('Please log in first.');
                         try {
-                            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                            const API_BASE = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.onrender.com/api';
                             // Step 1: Delete all stale subscriptions from server
                             const res = await fetch(`${API_BASE}/subscriptions/${user.id}/all`, { method: 'DELETE' });
                             const data = await res.json();
