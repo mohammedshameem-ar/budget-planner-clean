@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
 // VAPID Keys - Use environment variables for deployment (Option 2)
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BKBTBHQ3gY41vwxe5d5BAqEAGhMOrt9KKYO41-t8BW9gVWPOfH8WDnY0SVsx9hR03njGyiUeJ9DtgibOK8rZD5o';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'nDvL2JR4D8u8BnjmfIVEo5iRG1droFQ7cEQMCYwIulM';
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:test@test.com';
+const vapidEmail = process.env.VAPID_EMAIL || 'mailto:mohammedshameem.ar@gmail.com';
 
 // Setup web-push
 webpush.setVapidDetails(
@@ -149,7 +149,12 @@ app.post('/api/test-notification', async (req, res) => {
                 .then(() => { successCount++; })
                 .catch(err => {
                     console.error('[Test] Error sending notification:', err);
-                    if (!firstError) firstError = err.message || JSON.stringify(err);
+                    let errMsg = err.message || 'Unknown error';
+                    if (err.statusCode) {
+                        errMsg = `[${err.statusCode}] ${errMsg}`;
+                        if (err.body) errMsg += ` - ${err.body.trim()}`;
+                    }
+                    if (!firstError) firstError = errMsg;
                     failureCount++;
                     if (err.statusCode === 410 || err.statusCode === 404) {
                         return ref.delete();
