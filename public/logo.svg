@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Piggy Bank Outline (Navy) -->
+  <path d="M75,35 C70,25 55,20 40,25 C30,15 15,20 10,35 C5,45 5,65 15,75 L15,85 L25,85 L25,78 C30,80 35,80 40,80 L40,85 L50,85 L50,78 C65,75 85,65 85,45 C85,35 80,30 75,35 Z" fill="none" stroke="#1e1b4b" stroke-width="4" stroke-linejoin="round"/>
+  
+  <!-- Wallet Icon inside -->
+  <rect x="25" y="45" width="12" height="8" rx="1" fill="#1e1b4b"/>
+  <path d="M31,45 v2" stroke="white" stroke-width="1"/>
+  
+  <!-- Cyan Trend Arrow Overlay -->
+  <path d="M20,80 L40,50 L55,65 L80,20" fill="none" stroke="#06b6d4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70,20 L80,20 L80,30" fill="none" stroke="#06b6d4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

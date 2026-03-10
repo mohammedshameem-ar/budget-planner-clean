@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection rules
+    match /users/{userId} {
+      // User can only read/write their own data
+      allow read, write: if isOwner(userId);
+      
+      // Profile subcollection
+      match /profile/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) 
+          && request.resource.data.keys().hasAll(['amount', 'type', 'category', 'date', 'createdAt'])
+          && request.resource.data.amount is number
+          && request.resource.data.type in ['income', 'expense']
+          && request.resource.data.category is string
+          && request.resource.data.date is string
+          && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Reminders subcollection
+      match /reminders/{reminderId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Push subscriptions subcollection (read/write by owner)
+      match /pushSubscriptions/{subId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Notification history subcollection
+      match /notificationHistory/{histId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Plans subcollection
+      match /plans/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Stats and Archives subcollections
+      match /monthlyStats/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /archives/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
