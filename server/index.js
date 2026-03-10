@@ -3,7 +3,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const webpush = require('web-push');
 const { db, admin } = require('./config');
-console.log('Index.js loaded. Admin present:', !!admin);
+require('dotenv').config();
+console.log('Index.js loaded. VAPID_PUBLIC_KEY from env:', process.env.VAPID_PUBLIC_KEY ? 'Present' : 'Missing');
 require('./scheduler'); // Start the scheduler
 
 const app = express();
@@ -39,6 +40,11 @@ webpush.setVapidDetails(
     publicVapidKey,
     privateVapidKey
 );
+
+// Debug endpoint to check keys (safe to show public key)
+app.get('/api/vapid-public-key', (req, res) => {
+    res.json({ publicKey: publicVapidKey });
+});
 
 // Store subscription
 app.post('/api/subscribe', async (req, res) => {

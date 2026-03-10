@@ -27,17 +27,20 @@ export const AuthProvider = ({ children }) => {
 
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
+        const { getVapidPublicKey, subscribeToPush } = await import('../api/push');
+        const publicKey = await getVapidPublicKey();
+        
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: 'BKBTBHQ3gY41vwxe5d5BAqEAGhMOrt9KKYO41-t8BW9gVWPOfH8WDnY0SVsx9hR03njGyiUeJ9DtgibOK8rZD5o'
+          applicationServerKey: publicKey
         });
         console.log('[Auth] New push subscription created for user:', userId);
+        await subscribeToPush(subscription.toJSON(), userId);
       } else {
         console.log('[Auth] Reusing existing push subscription for user:', userId);
+        const { subscribeToPush } = await import('../api/push');
+        await subscribeToPush(subscription.toJSON(), userId);
       }
-
-      const { subscribeToPush } = await import('../api/push');
-      await subscribeToPush(subscription.toJSON(), userId);
       console.log('[Auth] Push subscription sent to backend for user:', userId);
     } catch (error) {
       console.error('[Auth] Error subscribing to push for user:', userId, error);
