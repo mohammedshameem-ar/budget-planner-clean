@@ -142,12 +142,14 @@ app.post('/api/test-notification', async (req, res) => {
         // Clean up duplicates and invalid entries first
         if (toDelete.length > 0) await Promise.all(toDelete);
 
+        let firstError = null;
         // Send only to unique endpoints
         const promises = uniqueDocs.map(({ ref, data: sub }) =>
             webpush.sendNotification(sub, payload)
                 .then(() => { successCount++; })
                 .catch(err => {
                     console.error('[Test] Error sending notification:', err);
+                    if (!firstError) firstError = err.message || JSON.stringify(err);
                     failureCount++;
                     if (err.statusCode === 410 || err.statusCode === 404) {
                         return ref.delete();
@@ -156,7 +158,12 @@ app.post('/api/test-notification', async (req, res) => {
         );
 
         await Promise.all(promises);
-        res.json({ message: 'Test notification processed.', successCount, failureCount });
+        res.json({ 
+            message: 'Test notification processed.', 
+            successCount, 
+            failureCount,
+            error: firstError 
+        });
 
     } catch (error) {
         console.error('Test notification failed:', error);

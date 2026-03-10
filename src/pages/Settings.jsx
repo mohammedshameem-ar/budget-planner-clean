@@ -206,7 +206,11 @@ const Settings = () => {
             console.log('Starting notification test...');
             const { sendTestNotification } = await import('../api/push');
             const result = await sendTestNotification(user.id);
-            alert(`✅ Test result: Sent to ${result.successCount} device(s). Failed on ${result.failureCount}.`);
+            if (result.error) {
+                alert(`✅ Test result: Sent to ${result.successCount} device(s). Failed on ${result.failureCount}.\n\nError: ${result.error}`);
+            } else {
+                alert(`✅ Test result: Sent to ${result.successCount} device(s). Failed on ${result.failureCount}.`);
+            }
         } catch (e) {
             console.error('Test failed:', e);
 
