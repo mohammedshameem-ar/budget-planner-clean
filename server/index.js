@@ -27,6 +27,10 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
+app.get("/", (req, res) => {
+    res.send("Backend is running 🚀");
+});
+
 // VAPID Keys - Use environment variables for deployment (Option 2)
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BKBTBHQ3gY41vwxe5d5BAqEAGhMOrt9KKYO41-t8BW9gVWPOfH8WDnY0SVsx9hR03njGyiUeJ9DtgibOK8rZD5o';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'nDvL2JR4D8u8BnjmfIVEo5iRG1droFQ7cEQMCYwIulM';
@@ -227,3 +231,4 @@ app.listen(PORT, () => {
         console.warn('!!! REGISTRATION/NOTIFICATION SERVICES WILL NOT WORK UNTIL serviceAccountKey.json IS ADDED !!!');
     }
 });
+
