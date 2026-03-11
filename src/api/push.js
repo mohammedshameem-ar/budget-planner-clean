@@ -51,3 +51,22 @@ export const sendTestNotification = async (userId) => {
         throw error;
     }
 };
+
+export const debugRunScheduler = async () => {
+    try {
+        const response = await fetch(`${API_URL}/debug-run-scheduler`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to trigger scheduler');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error triggering scheduler:', error);
+        throw error;
+    }
+};

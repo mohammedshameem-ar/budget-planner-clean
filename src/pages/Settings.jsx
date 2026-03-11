@@ -266,6 +266,18 @@ const Settings = () => {
         }
     };
 
+    const handleDebugScheduler = async () => {
+        try {
+            console.log('Starting manual scheduler run...');
+            const { debugRunScheduler } = await import('../api/push');
+            const result = await debugRunScheduler();
+            alert(`✅ Scheduler run complete!\n\nProcessed: ${result.details.processedCount} user(s)\nNotifications Sent: ${result.details.sentCount}\n\nCheck your notification center!`);
+        } catch (e) {
+            console.error('Scheduler trigger failed:', e);
+            alert(`❌ Error: ${e.message}`);
+        }
+    };
+
     const handleOpenBudgetModal = () => {
         setBudgetInput(budgetLimit);
         setShowBudgetModal(true);
@@ -820,13 +832,23 @@ const Settings = () => {
                     🔄 Force Re-subscribe (Fix broken notifications)
                 </button>
 
-                <button
-                    onClick={handleTestNotification}
-                    className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                >
-                    🔔 Test Notification System
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={handleTestNotification}
+                        className="btn btn-outline"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center' }}
+                    >
+                        <Activity size={18} /> Test Notification
+                    </button>
+
+                    <button
+                        onClick={handleDebugScheduler}
+                        className="btn btn-outline"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center', borderColor: 'var(--success)', color: 'var(--success)' }}
+                    >
+                        <RefreshCw size={18} /> Force Run Scheduled Tasks (Test)
+                    </button>
+                </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
                     If notifications fail: click "Force Re-subscribe" first, then test again.
                 </p>
