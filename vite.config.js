@@ -7,11 +7,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // We manually register /public/sw.js so disable auto-registration
-      // to avoid conflicts with the Vite PWA dev stub
-      registerType: 'prompt',
-      injectRegister: null,
-      // Use the manifest only — our real SW lives in /public/sw.js
+      // Use our own src/sw.js so the push handler is preserved in the build
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      registerType: 'autoUpdate',
+      injectRegister: 'script',
+      // Web app manifest
       manifest: {
         name: 'BudgetWise',
         short_name: 'BudgetWise',
