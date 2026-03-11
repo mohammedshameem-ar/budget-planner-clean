@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2 } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2, Settings as SettingsIcon, Wallet } from 'lucide-react';
 import Modal from '../components/Modal';
 import { collection, doc, getDocs, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const Settings = () => {
     const { user, subscribeUserToPush } = useAuth();
-    const { budgetLimit, updateBudgetLimit, income, updateIncome, incomeEnabled, updateIncomeEnabled, clearTransactions, clearAllData, getSummary, reminders, addReminder, deleteReminder } = useBudget();
+    const { transactions, budgetLimit, updateBudgetLimit, income, updateIncome, incomeEnabled, updateIncomeEnabled, budgetEnabled, updateBudgetEnabled, clearTransactions, clearAllData, getSummary, reminders, addReminder, deleteReminder } = useBudget();
     const [budgetInput, setBudgetInput] = useState(budgetLimit);
     const [incomeInput, setIncomeInput] = useState(income);
     const [error, setError] = useState('');
@@ -359,17 +359,36 @@ const Settings = () => {
     const isBudgetDisabled = incomeEnabled && income <= 0;
 
     return (
-        <div className="container animate-fade-in">
-            <header className="flex-between" style={{ marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 className="text-gradient">Settings</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>Manage your preferences</p>
+        <div className="container animate-fade-in" style={{ paddingBottom: '3rem' }}>
+            <header className="flex-between" style={{ 
+                marginBottom: '2.5rem', 
+                flexWrap: 'wrap', 
+                gap: '1rem',
+                background: 'var(--glass-bg)',
+                padding: '1.5rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--shadow-sm)'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ 
+                        width: '48px', height: '48px', 
+                        borderRadius: '12px', 
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(59,130,246,0.1))',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                        <SettingsIcon size={24} style={{ color: 'var(--primary)' }} />
+                    </div>
+                    <div>
+                        <h1 className="text-gradient" style={{ margin: 0, fontSize: '1.8rem', lineHeight: '1.2' }}>Settings</h1>
+                        <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0 0', fontSize: '0.95rem' }}>Personalize your financial experience</p>
+                    </div>
                 </div>
                 {deferredPrompt && (
                     <button
                         onClick={handleInstallClick}
                         className="btn btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}
                     >
                         <Download size={18} />
                         Install App
@@ -380,27 +399,55 @@ const Settings = () => {
             {/* Settings Grid Container */}
             <div className="settings-grid">
                 {/* Income Settings Section */}
-                <div className="glass-panel">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Income Settings</h2>
+                <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                <Wallet size={18} color="var(--success)" />
+                            </div>
+                            Income Settings
+                        </h2>
                         <button
                             onClick={() => updateIncomeEnabled(!incomeEnabled)}
                             className="btn"
                             style={{
-                                padding: '0.35rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 14px',
                                 fontSize: '0.82rem',
-                                fontWeight: '700',
+                                fontWeight: '600',
                                 borderRadius: '20px',
                                 background: incomeEnabled
-                                    ? 'rgba(239, 68, 68, 0.12)'
-                                    : 'rgba(16, 185, 129, 0.12)',
-                                color: incomeEnabled ? 'var(--danger)' : 'var(--success)',
-                                border: `1.5px solid ${incomeEnabled ? 'var(--danger)' : 'var(--success)'}`,
+                                    ? 'var(--surface-light)'
+                                    : 'rgba(239, 68, 68, 0.1)',
+                                color: incomeEnabled ? 'var(--text-main)' : 'var(--danger)',
+                                border: `1px solid ${incomeEnabled ? 'var(--glass-stroke)' : 'rgba(239, 68, 68, 0.3)'}`,
                                 cursor: 'pointer',
-                                transition: 'all 0.2s ease'
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}
+                            onMouseEnter={e => {
+                                if(incomeEnabled) {
+                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                    e.currentTarget.style.color = 'var(--danger)';
+                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if(incomeEnabled) {
+                                    e.currentTarget.style.background = 'var(--surface-light)';
+                                    e.currentTarget.style.color = 'var(--text-main)';
+                                    e.currentTarget.style.borderColor = 'var(--glass-stroke)';
+                                }
                             }}
                         >
-                            {incomeEnabled ? '🔴 Disable Income' : '🟢 Enable Income'}
+                            <div style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: incomeEnabled ? 'var(--success)' : 'var(--danger)',
+                                boxShadow: `0 0 8px ${incomeEnabled ? 'var(--success)' : 'var(--danger)'}`
+                            }} />
+                            {incomeEnabled ? 'Enabled' : 'Disabled'}
                         </button>
                     </div>
 
@@ -437,12 +484,78 @@ const Settings = () => {
                 </div>
 
                 {/* Budget Settings Section */}
-                <div className="glass-panel">
-                    <h2 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', fontSize: '1.25rem' }}>
-                        Budget Preferences
-                    </h2>
+                <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                <Activity size={18} color="var(--primary)" />
+                            </div>
+                            Budget Preferences
+                        </h2>
+                        <button
+                            onClick={() => updateBudgetEnabled(!budgetEnabled)}
+                            className="btn"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 14px',
+                                fontSize: '0.82rem',
+                                fontWeight: '600',
+                                borderRadius: '20px',
+                                background: budgetEnabled
+                                    ? 'var(--surface-light)'
+                                    : 'rgba(239, 68, 68, 0.1)',
+                                color: budgetEnabled ? 'var(--text-main)' : 'var(--danger)',
+                                border: `1px solid ${budgetEnabled ? 'var(--glass-stroke)' : 'rgba(239, 68, 68, 0.3)'}`,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}
+                            onMouseEnter={e => {
+                                if(budgetEnabled) {
+                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                    e.currentTarget.style.color = 'var(--danger)';
+                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if(budgetEnabled) {
+                                    e.currentTarget.style.background = 'var(--surface-light)';
+                                    e.currentTarget.style.color = 'var(--text-main)';
+                                    e.currentTarget.style.borderColor = 'var(--glass-stroke)';
+                                }
+                            }}
+                        >
+                            <div style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: budgetEnabled ? 'var(--success)' : 'var(--danger)',
+                                boxShadow: `0 0 8px ${budgetEnabled ? 'var(--success)' : 'var(--danger)'}`
+                            }} />
+                            {budgetEnabled ? 'Enabled' : 'Disabled'}
+                        </button>
+                    </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    {/* Info banner shown when budget limit is disabled */}
+                    {!budgetEnabled && (
+                        <div className="animate-fade-in" style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.6rem',
+                            marginBottom: '1rem',
+                            padding: '0.75rem 1rem',
+                            background: 'rgba(251, 191, 36, 0.1)',
+                            border: '1px solid rgba(251, 191, 36, 0.4)',
+                            borderRadius: '10px',
+                            fontSize: '0.85rem',
+                            color: '#d97706'
+                        }}>
+                            <span style={{ fontSize: '1rem', flexShrink: 0 }}>ℹ️</span>
+                            <span>Budget Limit is <strong>disabled</strong>. The Dashboard will show <strong>None</strong> for Budget Limit and Budget Remaining.</span>
+                        </div>
+                    )}
+
+                    <div style={{ marginBottom: '1.5rem', opacity: budgetEnabled ? 1 : 0.4, pointerEvents: budgetEnabled ? 'auto' : 'none', transition: 'opacity 0.3s ease' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                             Monthly Budget Limit (₹)
                         </label>
@@ -479,10 +592,12 @@ const Settings = () => {
                 </div>
 
                 {/* Reminders Section */}
-                <div className="glass-panel">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', margin: 0 }}>
-                            <Bell size={20} />
+                <div className="glass-panel" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.25rem', margin: 0 }}>
+                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                <Bell size={18} color="var(--warning)" />
+                            </div>
                             Reminders
                         </h2>
                         <button onClick={toggleRemindersCollapse} className="btn btn-outline" style={{ padding: '0.25rem', borderRadius: '50%' }}>
@@ -700,8 +815,13 @@ const Settings = () => {
 
             {/* Daily Budget Summary */}
             <div className="glass-panel" style={{ marginTop: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600' }}>Daily Budget Summary</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: 'rgba(139, 92, 246, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                            <Activity size={18} color="var(--cat-shopping)" />
+                        </div>
+                        Daily Budget Summary
+                    </h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {summaryCompact && budgetSummaryEnabled && (
                             <button
@@ -745,7 +865,8 @@ const Settings = () => {
                             padding: '0.2rem 0.6rem',
                             borderRadius: '4px',
                             fontSize: '0.85rem',
-                            fontWeight: '600'
+                            fontWeight: '600',
+                            color: 'white'
                         }}>
                             {budgetSummaryTime}
                         </span>
@@ -788,10 +909,13 @@ const Settings = () => {
                 )}
             </div >
 
-            <div style={{ marginTop: '2rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Bell size={18} /> Notification Controls
-                </h3>
+            <div className="glass-panel" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ background: 'rgba(236, 72, 153, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                        <Bell size={18} color="var(--cat-entertainment)" />
+                    </div>
+                    Notification Controls
+                </h2>
 
                 {/* Force Re-subscribe button */}
                 <button
@@ -852,40 +976,6 @@ const Settings = () => {
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
                     If notifications fail: click "Force Re-subscribe" first, then test again.
                 </p>
-            </div>
-
-            {/* Diagnostics Section */}
-            <div className="glass-panel" style={{ marginTop: '2rem' }}>
-                <h2 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-                    <Activity size={20} />
-                    Diagnostics
-                </h2>
-                <div style={{ display: 'grid', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>App Installed (PWA):</span>
-                        <span style={{ color: isInstalled ? 'var(--success)' : 'var(--warning)', fontWeight: 'bold' }}>
-                            {isInstalled ? 'Yes' : 'No (Browser/Web)'}
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Notification Permission:</span>
-                        <span style={{ color: notificationPermission === 'granted' ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
-                            {notificationPermission}
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Service Worker Active:</span>
-                        <span style={{ color: swActive ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
-                            {swActive ? 'Yes' : 'No'}
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                        <span>VAPID Key (Last 8):</span>
-                        <code style={{ fontSize: '0.7rem' }}>
-                            {vapidKey ? `...${vapidKey.slice(-8)}` : 'Loading...'}
-                        </code>
-                    </div>
-                </div>
             </div>
 
             {/* Danger Zone Section */}

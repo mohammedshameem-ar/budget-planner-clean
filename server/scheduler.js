@@ -79,25 +79,58 @@ async function runScheduler(force = false) {
 
                             let totalSpentToday = 0;
                             let totalSpentMonth = 0;
+                            const todayCategoryTotals = {};
 
                             txSnap.docs.forEach(d => {
                                 const data = d.data();
                                 if (data.type === 'expense') {
-                                    if (data.date === todayStr) totalSpentToday += data.amount || 0;
-                                    if (data.date && data.date.startsWith(monthStr)) totalSpentMonth += data.amount || 0;
+                                    if (data.date === todayStr) {
+                                        totalSpentToday += data.amount || 0;
+                                        todayCategoryTotals[data.category] = (todayCategoryTotals[data.category] || 0) + (data.amount || 0);
+                                    }
+                                    if (data.date && data.date.startsWith(monthStr)) {
+                                        totalSpentMonth += data.amount || 0;
+                                    }
+                                }
+                            });
+
+                            let highestCategory = 'None';
+                            let highestCategoryAmount = 0;
+                            Object.entries(todayCategoryTotals).forEach(([cat, amt]) => {
+                                if (amt > highestCategoryAmount) {
+                                    highestCategoryAmount = amt;
+                                    highestCategory = cat;
                                 }
                             });
 
                             let budgetLimit = 0;
+                            let income = 0;
+                            let incomeEnabled = true;
+                            let budgetEnabled = true;
                             const profileSettingsSnap = await userDoc.ref.collection('profile').doc('settings').get();
                             if (profileSettingsSnap.exists) {
-                                budgetLimit = profileSettingsSnap.data().budgetLimit || 0;
+                                const pData = profileSettingsSnap.data();
+                                budgetLimit = pData.budgetLimit || 0;
+                                income = pData.income || 0;
+                                incomeEnabled = pData.incomeEnabled !== false;
+                                budgetEnabled = typeof pData.budgetEnabled === 'boolean' ? pData.budgetEnabled : true;
                             }
 
-                            const remaining = budgetLimit - totalSpentMonth;
+                            let remaining = 'None';
+                            if (budgetEnabled && budgetLimit > 0) {
+                                remaining = `₹${(budgetLimit - totalSpentMonth).toLocaleString('en-IN')}`;
+                            }
+
+                            let availableBalanceStr = '';
+                            if (incomeEnabled && budgetEnabled && income > 0) {
+                                availableBalanceStr = `\nAvailable Balance: ₹${(income - totalSpentMonth).toLocaleString('en-IN')}`;
+                            }
+
+                            const highCatStr = highestCategory !== 'None' ? `\nOverspent: ${highestCategory.charAt(0).toUpperCase() + highestCategory.slice(1)} (₹${highestCategoryAmount.toLocaleString('en-IN')})` : '';
+
                             const payload = JSON.stringify({
                                 title: 'BudgetWise Daily Summary',
-                                body: `Today: ₹${totalSpentToday}\nMonth: ₹${totalSpentMonth}\nRemaining: ₹${remaining}`,
+                                body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}${highCatStr}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
                                 tag: `daily-summary-${todayStr}`,
                                 icon: '/logo.svg',
                                 badge: '/logo.svg'

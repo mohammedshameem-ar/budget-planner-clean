@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 // VAPID Keys
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:mohammedshameem.ar@gmail.com';
+const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@budgetwise.app';
 
 webpush.setVapidDetails(vapidEmail, publicVapidKey, privateVapidKey);
 
@@ -87,25 +87,82 @@ app.post('/api/test-notification', async (req, res) => {
 
         if (subsSnap.empty) return res.status(404).json({ error: 'No subscriptions found' });
 
+        // Build the same rich payload as the scheduler
+        const nowJS = new Date();
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
+        const monthStr = todayStr.substring(0, 7);
+
+        const txSnap = await userRef.collection('transactions').get();
+        let totalSpentToday = 0;
+        let totalSpentMonth = 0;
+        const todayCategoryTotals = {};
+
+        txSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.type === 'expense') {
+                if (data.date === todayStr) {
+                    totalSpentToday += data.amount || 0;
+                    todayCategoryTotals[data.category] = (todayCategoryTotals[data.category] || 0) + (data.amount || 0);
+                }
+                if (data.date && data.date.startsWith(monthStr)) totalSpentMonth += data.amount || 0;
+            }
+        });
+
+        let highestCategory = 'None';
+        let highestCategoryAmount = 0;
+        Object.entries(todayCategoryTotals).forEach(([cat, amt]) => {
+            if (amt > highestCategoryAmount) { highestCategoryAmount = amt; highestCategory = cat; }
+        });
+
+        let budgetLimit = 0, income = 0, incomeEnabled = true, budgetEnabled = true;
+        const profileSnap = await userRef.collection('profile').doc('settings').get();
+        if (profileSnap.exists) {
+            const pData = profileSnap.data();
+            budgetLimit = pData.budgetLimit || 0;
+            income = pData.income || 0;
+            incomeEnabled = pData.incomeEnabled !== false;
+            budgetEnabled = typeof pData.budgetEnabled === 'boolean' ? pData.budgetEnabled : true;
+        }
+
+        let remaining = 'None';
+        if (budgetEnabled && budgetLimit > 0) {
+            remaining = `₹${(budgetLimit - totalSpentMonth).toLocaleString('en-IN')}`;
+        }
+
+        let availableBalanceStr = '';
+        if (incomeEnabled && budgetEnabled && income > 0) {
+            availableBalanceStr = `\nAvailable Balance: ₹${(income - totalSpentMonth).toLocaleString('en-IN')}`;
+        }
+
+        const highCatStr = highestCategory !== 'None'
+            ? `\nOverspent: ${highestCategory.charAt(0).toUpperCase() + highestCategory.slice(1)} (₹${highestCategoryAmount.toLocaleString('en-IN')})`
+            : '';
+
         const payload = JSON.stringify({
-            title: 'BudgetWise Test',
-            body: 'Your push notifications are working correctly!',
+            title: 'BudgetWise Daily Summary',
+            body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}${highCatStr}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
             icon: '/logo.svg',
             badge: '/logo.svg',
-            data: { url: '/settings' }
+            data: { url: '/dashboard' }
         });
 
         const results = [];
+        let successCount = 0, failureCount = 0;
+        const endpoints = [];
         for (const doc of subsSnap.docs) {
             try {
                 await webpush.sendNotification(doc.data(), payload);
                 results.push({ success: true, endpoint: doc.data().endpoint });
+                endpoints.push(doc.data().endpoint);
+                successCount++;
             } catch (err) {
                 if (err.statusCode === 410 || err.statusCode === 404) await doc.ref.delete();
                 results.push({ success: false, error: err.message });
+                failureCount++;
             }
         }
-        res.json({ results });
+        res.json({ results, successCount, failureCount, endpoints });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
