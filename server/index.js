@@ -41,6 +41,11 @@ app.get('/api/vapid-public-key', (req, res) => {
     res.json({ publicKey: publicVapidKey });
 });
 
+// For external keep-alive services (UptimeRobot, cron-job.org)
+app.get('/api/ping', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Store subscription
 app.post('/api/subscribe', async (req, res) => {
     const { subscription, userId } = req.body;
