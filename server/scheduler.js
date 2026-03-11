@@ -132,11 +132,15 @@ async function runScheduler(force = false) {
                     await remDoc.ref.update({ nextNotificationTime: nextTimeTS });
                 }
 
+                
+                console.log(`[Scheduler] Checking reminder ${remDoc.id} for user ${userId}. Next: ${nextTimeTS ? nextTimeTS.toDate().toISOString() : 'NULL'}, Now: ${nowJS.toISOString()}`);
+
                 if (nextTimeTS && nextTimeTS.toMillis() <= now.toMillis()) {
                     let shouldSendReminder = false;
                     await db.runTransaction(async (t) => {
                         const remSnap = await t.get(remDoc.ref);
                         const rData = remSnap.data();
+                        
                         if (rData.enabled && !rData.completed && rData.nextNotificationTime.toMillis() === nextTimeTS.toMillis()) {
                             let updates = { lastSent: now };
                             if (rData.recurrence === 'one-time') {

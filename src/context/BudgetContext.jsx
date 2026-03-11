@@ -323,7 +323,8 @@ export const BudgetProvider = ({ children }) => {
             await setDoc(reminderRef, {
                 ...reminder,
                 nextNotificationTime: Timestamp.fromDate(scheduledTime),
-                createdAt: Timestamp.now()
+                createdAt: Timestamp.now(),
+                completed: false
             });
         } catch (error) {
             console.error('Error adding reminder:', error);
