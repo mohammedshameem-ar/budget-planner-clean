@@ -20,21 +20,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Register push subscription for a user
-  const subscribeUserToPush = async (userId) => {
+  const subscribeUserToPush = async (userId, force = false) => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     try {
       const registration = await navigator.serviceWorker.ready;
 
       let subscription = await registration.pushManager.getSubscription();
+      
+      // If forcing, we explicitly unsubscribe first to get a clean slate
+      if (force && subscription) {
+        console.log('[Auth] Force re-subscribe: Unsubscribing existing...');
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+
       if (!subscription) {
         const { getVapidPublicKey, subscribeToPush } = await import('../api/push');
         const publicKey = await getVapidPublicKey();
         
+        console.log('[Auth] Creating fresh push subscription for user:', userId);
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: publicKey
         });
-        console.log('[Auth] New push subscription created for user:', userId);
         await subscribeToPush(subscription.toJSON(), userId);
       } else {
         console.log('[Auth] Reusing existing push subscription for user:', userId);

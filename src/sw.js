@@ -8,37 +8,52 @@ precacheAndRoute(self.__WB_MANIFEST || []);
 cleanupOutdatedCaches();
 
 // Take control of all pages immediately
+self.addEventListener('activate', (event) => {
+    console.log('[SW] v1.3.0 Activated and claiming clients...');
+    event.waitUntil(self.clients.claim());
+});
+
 self.skipWaiting();
 clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push received:', event);
+    console.log('[SW] Push event received at:', new Date().toISOString());
 
     let data = {};
     if (event.data) {
         try {
             data = event.data.json();
+            console.log('[SW] Push JSON payload:', data);
         } catch (e) {
-            console.log('[SW] Push data is not JSON:', event.data.text());
-            data = { body: event.data.text() };
+            const rawText = event.data.text();
+            console.warn('[SW] Push payload not JSON, using text:', rawText);
+            data = { body: rawText };
         }
+    } else {
+        console.warn('[SW] Push event has no data!');
     }
 
-    const title = data.title || 'BudgetWise';
+    const title = data.title || 'BudgetWise Update';
     const options = {
-        body: data.body || 'You have a new notification.',
+        body: data.body || 'You have a new message from BudgetWise.',
         icon: data.icon || '/logo.svg',
         badge: '/logo.svg',
-        tag: data.tag || 'budgetwise-notification',
+        tag: data.tag || 'budgetwise-notification-tag',
         data: data.data || { url: '/' },
+        // Essential properties for reliable display on Windows/Chrome
         requireInteraction: true,
         renotify: true,
+        silent: false,
         vibrate: [200, 100, 200]
     };
 
+    console.log('[SW] Showing notification with options:', options);
+
     event.waitUntil(
         self.registration.showNotification(title, options)
+            .then(() => console.log('[SW] showNotification successful'))
+            .catch((err) => console.error('[SW] Notification display FAILED:', err))
     );
 });
 

@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.
 
 export const getVapidPublicKey = async () => {
     try {
-        const response = await fetch(`${API_URL}/vapid-public-key`);
+        const response = await fetch(`${API_URL}/vapid-public-key`, { cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to fetch VAPID key');
         const data = await response.json();
         return data.publicKey;

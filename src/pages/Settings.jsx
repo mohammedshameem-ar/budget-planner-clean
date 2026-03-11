@@ -19,6 +19,7 @@ const Settings = () => {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
     const [swActive, setSwActive] = useState(false);
+    const [vapidKey, setVapidKey] = useState('');
 
     // Modal State
     const [showIncomeModal, setShowIncomeModal] = useState(false);
@@ -181,6 +182,19 @@ const Settings = () => {
         window.addEventListener('beforeinstallprompt', handler);
 
         return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    useEffect(() => {
+        const fetchKey = async () => {
+            try {
+                const { getVapidPublicKey } = await import('../api/push');
+                const key = await getVapidPublicKey();
+                setVapidKey(key);
+            } catch (e) {
+                console.error('Failed to fetch VAPID key for diagnostics:', e);
+            }
+        };
+        fetchKey();
     }, []);
 
     const handleInstallClick = async () => {
@@ -764,15 +778,18 @@ const Settings = () => {
                             const data = await res.json();
                             console.log('[ReSubscribe] Server reset:', data);
 
-                            // Step 2: Unsubscribe from browser push manager
+                            // Step 2: Unsubscribe from browser push manager and update SW
                             if ('serviceWorker' in navigator) {
                                 const reg = await navigator.serviceWorker.ready;
+                                // Force update the service worker to make sure we have the latest code
+                                await reg.update().catch(e => console.warn('SW Update failed:', e));
+                                
                                 const existing = await reg.pushManager.getSubscription();
                                 if (existing) await existing.unsubscribe();
                             }
 
-                            // Step 3: Create fresh subscription
-                            await subscribeUserToPush(user.id);
+                            // Step 3: Create fresh subscription (forcing fresh keys)
+                            await subscribeUserToPush(user.id, true);
                             alert('✅ Re-subscribed successfully! Try "Test Notification" now.');
                         } catch (err) {
                             console.error('Re-subscribe failed:', err);
@@ -825,6 +842,12 @@ const Settings = () => {
                         <span style={{ color: swActive ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
                             {swActive ? 'Yes' : 'No'}
                         </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <span>VAPID Key (Last 8):</span>
+                        <code style={{ fontSize: '0.7rem' }}>
+                            {vapidKey ? `...${vapidKey.slice(-8)}` : 'Loading...'}
+                        </code>
                     </div>
                 </div>
             </div>
