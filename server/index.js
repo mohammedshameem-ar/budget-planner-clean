@@ -30,8 +30,8 @@ app.get("/", (req, res) => {
 });
 
 // VAPID Keys - Use environment variables for deployment (Option 2)
-const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BKBTBHQ3gY41vwxe5d5BAqEAGhMOrt9KKYO41-t8BW9gVWPOfH8WDnY0SVsx9hR03njGyiUeJ9DtgibOK8rZD5o';
-const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'nDvL2JR4D8u8BnjmfIVEo5iRG1droFQ7cEQMCYwIulM';
+const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
+const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
 const vapidEmail = process.env.VAPID_EMAIL || 'mailto:mohammedshameem.ar@gmail.com';
 
 // Setup web-push
@@ -230,6 +230,28 @@ app.delete('/api/subscriptions/:userId/all', async (req, res) => {
         console.log(`[Reset] Deleted all ${subsSnap.size} subscriptions for user ${userId}`);
         res.json({ message: `Deleted all ${subsSnap.size} subscriptions. Please reload the app to create a fresh one.` });
     } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Admin: wipe ALL push subscriptions for every user in Firestore (used after rotating VAPID keys)
+app.delete('/api/admin/subscriptions/all', async (req, res) => {
+    const secret = req.headers['x-admin-secret'];
+    if (secret !== (process.env.ADMIN_SECRET || 'budgetwise-admin-2024')) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    try {
+        const usersSnap = await db.collection('users').get();
+        let totalDeleted = 0;
+        for (const userDoc of usersSnap.docs) {
+            const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
+            await Promise.all(subsSnap.docs.map(d => d.ref.delete()));
+            totalDeleted += subsSnap.size;
+        }
+        console.log(`[Admin] Wiped all push subscriptions across all users. Total: ${totalDeleted}`);
+        res.json({ message: `Done. Deleted ${totalDeleted} push subscription(s) across ${usersSnap.size} user(s).` });
+    } catch (error) {
+        console.error('Admin wipe error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

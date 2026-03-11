@@ -9,7 +9,7 @@ export const getVapidPublicKey = async () => {
     } catch (error) {
         console.error('Error fetching VAPID key:', error);
         // Fallback to hardcoded key if backend is unreachable
-        return 'BKBTBHQ3gY41vwxe5d5BAqEAGhMOrt9KKYO41-t8BW9gVWPOfH8WDnY0SVsx9hR03njGyiUeJ9DtgibOK8rZD5o';
+        return 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
     }
 };
 
