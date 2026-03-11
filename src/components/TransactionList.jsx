@@ -11,6 +11,7 @@ import {
     Wallet,
     MoreHorizontal
 } from 'lucide-react';
+import { ONLINE_SERVICES } from './OnlineServicesForm';
 
 export const categoryIcons = {
     food: Utensils,
@@ -44,6 +45,15 @@ const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions
                         const IconComponent = categoryIcons[t.category?.toLowerCase()] || MoreHorizontal;
                         const categoryColor = `var(--cat-${t.category?.toLowerCase()}, var(--primary))`;
 
+                        let displayLogo = t.logo;
+                        if (displayLogo) {
+                            const matchedService = ONLINE_SERVICES.find(s => 
+                                (typeof t.logo === 'string' && t.logo.toLowerCase().includes(s.id.toLowerCase())) ||
+                                (t.note && typeof t.note === 'string' && t.note.toLowerCase().includes(s.name.toLowerCase()))
+                            );
+                            if (matchedService) displayLogo = matchedService.logo;
+                        }
+
                         return (
                             <div key={t.id} className="flex-between" style={{
                                 paddingBottom: '1rem',
@@ -51,9 +61,9 @@ const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions
                             }}>
                                 <div className="flex-center" style={{ gap: '1rem' }}>
                                     <div style={{
-                                        background: t.logo ? 'transparent' : `${categoryColor}15`,
-                                        padding: t.logo ? '0' : '0.6rem',
-                                        borderRadius: t.logo ? '50%' : '12px',
+                                        background: displayLogo ? 'transparent' : `${categoryColor}15`,
+                                        padding: displayLogo ? '0' : '0.6rem',
+                                        borderRadius: displayLogo ? '50%' : '12px',
                                         color: categoryColor,
                                         display: 'flex',
                                         alignItems: 'center',
@@ -61,12 +71,12 @@ const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions
                                         width: '40px',
                                         height: '40px',
                                         overflow: 'hidden',
-                                        border: t.logo ? '1px solid var(--glass-border)' : 'none'
+                                        border: displayLogo ? '1px solid var(--glass-border)' : 'none'
                                     }}>
-                                        {t.logo ? (
-                                            <img src={t.logo} alt={t.note} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                                        {displayLogo ? (
+                                            <img src={displayLogo} alt={t.note} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                                         ) : null}
-                                        <div style={{ display: t.logo ? 'none' : 'block' }}>
+                                        <div style={{ display: displayLogo ? 'none' : 'block' }}>
                                             <IconComponent size={20} strokeWidth={2.5} />
                                         </div>
                                     </div>

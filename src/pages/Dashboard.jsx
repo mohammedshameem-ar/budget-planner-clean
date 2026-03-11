@@ -13,6 +13,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const {
         budgetLimit,
+        budgetEnabled,
         transactions,
         getSummary,
         plans,
@@ -162,7 +163,7 @@ const Dashboard = () => {
     const [budgetWarning, setBudgetWarning] = useState(false);
 
     const handleAddTransactionClick = () => {
-        if (!budgetLimit || budgetLimit <= 0) {
+        if (budgetEnabled && (!budgetLimit || budgetLimit <= 0)) {
             setBudgetWarning(true);
             setTimeout(() => setBudgetWarning(false), 3000);
             return;

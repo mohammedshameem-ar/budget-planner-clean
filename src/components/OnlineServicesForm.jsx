@@ -16,7 +16,7 @@ import netflixLogo from '../assets/netflix.png';
 import spotifyLogo from '../assets/Spotify.png';
 import primeLogo from '../assets/amazonprimevideo.png';
 
-const ONLINE_SERVICES = [
+export const ONLINE_SERVICES = [
     // Food Delivery
     { id: 'swiggy', name: 'Swiggy', category: 'food', icon: '🍔', logo: swiggyLogo, color: '#fc8019' },
     { id: 'zomato', name: 'Zomato', category: 'food', icon: '🍲', logo: zomatoLogo, color: '#e23744' },

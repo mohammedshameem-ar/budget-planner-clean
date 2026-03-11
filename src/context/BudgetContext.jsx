@@ -26,6 +26,7 @@ export const BudgetProvider = ({ children }) => {
 
     const [income, setIncome] = useState(0);
     const [incomeEnabled, setIncomeEnabled] = useState(true);
+    const [budgetEnabled, setBudgetEnabled] = useState(true);
     const [savings, setSavings] = useState(0);
     const [balanceContributedToSavings, setBalanceContributedToSavings] = useState(0);
     const [carryOverBalance, setCarryOverBalance] = useState(0);
@@ -44,11 +45,10 @@ export const BudgetProvider = ({ children }) => {
             return;
         }
 
-        const loadProfile = async () => {
-            try {
-                const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
-                const profileSnap = await getDoc(profileRef);
+        const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
 
+        const unsubscribe = onSnapshot(profileRef, async (profileSnap) => {
+            try {
                 if (profileSnap.exists()) {
                     const data = profileSnap.data();
                     let currentIncome = data.income || 0;
@@ -70,19 +70,16 @@ export const BudgetProvider = ({ children }) => {
                             budgetLimit: currentBudgetLimit,
                             carryOverBalance: currentCarryOverBalance, // The balance they started the month with
                             incomeEnabled: data.incomeEnabled !== false,
+                            budgetEnabled: data.budgetEnabled !== false,
                             savedAt: Timestamp.now()
                         });
 
                         // 2. Calculate what's left over from last month (only if income is enabled)
                         if (data.incomeEnabled !== false) {
                             // The unspent amount from last month = Income - Budget Limit - What they manually contributed from balance to savings
-                            // Note: Expenses are already tracked against the Budget Limit. The "Available Balance" equation is:
-                            // Income - BudgetLimit - BalanceContributedToSavings + oldCarryOverBalance
                             const leftover = currentIncome - currentBudgetLimit - currentBalanceContributedToSavings;
-                            // We add this to their running carry-over balance
                             currentCarryOverBalance += leftover;
 
-                            // Prevent negative carryover anomaly if budget was set higher than income
                             if (currentCarryOverBalance < 0) currentCarryOverBalance = 0;
                         }
 
@@ -109,11 +106,11 @@ export const BudgetProvider = ({ children }) => {
                     setSavings(data.savings || 0);
                     setBalanceContributedToSavings(currentBalanceContributedToSavings);
                     setIncomeEnabled(data.incomeEnabled !== false); // default true
+                    setBudgetEnabled(data.budgetEnabled !== false); // default true
                 } else {
                     const now = new Date();
                     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-                    // Initialize profile for new user
                     // Initialize profile for new user
                     await setDoc(profileRef, {
                         budgetLimit: 0,
@@ -128,11 +125,13 @@ export const BudgetProvider = ({ children }) => {
                     });
                 }
             } catch (error) {
-                console.error('Error loading profile:', error);
+                console.error('Error processing profile snapshot:', error);
             }
-        };
+        }, (error) => {
+            console.error('Error listening to profile:', error);
+        });
 
-        loadProfile();
+        return unsubscribe;
 
     }, [user]);
 
@@ -358,6 +357,21 @@ export const BudgetProvider = ({ children }) => {
         }
     };
 
+    const updateBudgetEnabled = async (value) => {
+        if (!user) return;
+        try {
+            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            await setDoc(profileRef, {
+                budgetEnabled: value,
+                updatedAt: Timestamp.now()
+            }, { merge: true });
+            setBudgetEnabled(value);
+        } catch (error) {
+            console.error('Error updating budgetEnabled:', error);
+            throw error;
+        }
+    };
+
     const updateBudgetLimit = async (amount) => {
         if (!user) return;
 
@@ -525,10 +539,10 @@ export const BudgetProvider = ({ children }) => {
             totalExpenses,
             monthExpenses: currentMonthExpenses, // Current month starting from 1st
             totalIncome: incomeEnabled ? income : null,
-            budgetLimit: budgetLimit,
-            remainingBudget: budgetLimit - currentMonthExpenses,
+            budgetLimit: budgetEnabled ? budgetLimit : null,
+            remainingBudget: budgetEnabled ? (budgetLimit - currentMonthExpenses) : null,
             totalSavings: savings,
-            availableBalance: incomeEnabled ? income - budgetLimit - balanceContributedToSavings + carryOverBalance : null
+            availableBalance: (!incomeEnabled || !budgetEnabled) ? null : (income - budgetLimit - balanceContributedToSavings + carryOverBalance)
         };
     };
 
@@ -547,6 +561,8 @@ export const BudgetProvider = ({ children }) => {
             income,
             incomeEnabled,
             updateIncomeEnabled,
+            budgetEnabled,
+            updateBudgetEnabled,
             addTransaction,
             deleteTransaction,
             updateBudgetLimit,

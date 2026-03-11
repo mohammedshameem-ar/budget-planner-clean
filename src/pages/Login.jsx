@@ -36,129 +36,93 @@ const Login = () => {
     };
 
     return (
-        <div style={{
+        <div className="auth-container" style={{
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#02a9f4',
+            background: 'linear-gradient(135deg, #02a9f4 0%, #01579b 100%)',
             padding: '20px',
             position: 'relative',
-            overflow: 'hidden',
             fontFamily: "'Outfit', sans-serif"
         }}>
             {/* Decorative background circles */}
             <div style={{
                 position: 'absolute',
-                top: '-50px',
-                left: '-50px',
-                width: '150px',
-                height: '150px',
-                background: 'rgba(255, 255, 255, 0.4)',
+                top: '-5%',
+                left: '-5%',
+                width: 'clamp(150px, 30vw, 300px)',
+                height: 'clamp(150px, 30vw, 300px)',
+                background: 'rgba(255, 255, 255, 0.15)',
                 borderRadius: '50%',
-                zIndex: 1
+                zIndex: 1,
+                backdropFilter: 'blur(5px)',
+                animation: 'float 6s ease-in-out infinite'
             }}></div>
             <div style={{
                 position: 'absolute',
-                bottom: '-30px',
-                right: '-30px',
-                width: '200px',
-                height: '200px',
-                background: 'rgba(255, 255, 255, 0.4)',
+                bottom: '-10%',
+                right: '-10%',
+                width: 'clamp(200px, 40vw, 400px)',
+                height: 'clamp(200px, 40vw, 400px)',
+                background: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '50%',
-                zIndex: 1
+                zIndex: 1,
+                backdropFilter: 'blur(5px)',
+                animation: 'float 8s ease-in-out infinite reverse'
             }}></div>
 
-            <main style={{
+            <main className="login-wrapper" style={{
                 width: '100%',
-                maxWidth: '1000px',
-                background: 'white',
-                borderRadius: '30px',
-                display: 'flex',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                maxWidth: '450px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderRadius: '24px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.2)',
                 overflow: 'hidden',
                 zIndex: 2,
-                minHeight: '600px'
+                position: 'relative'
             }}>
-                {/* Left Side: Illustration & Quote */}
-                <div style={{
-                    flex: 1,
-                    position: 'relative',
-                    background: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=2070&auto=format&fit=crop')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    padding: '40px',
+                <div className="login-form-side" style={{
+                    padding: 'clamp(30px, 8vw, 50px) clamp(20px, 6vw, 40px)',
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    color: 'white',
-                    textAlign: 'center'
+                    position: 'relative'
                 }}>
-                    <h1 style={{
-                        fontFamily: "'Dancing Script', cursive",
-                        fontSize: '3.5rem',
-                        marginBottom: '10px',
-                        textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                    }}>BudgetWise</h1>
-                    <p style={{
-                        fontSize: '1rem',
-                        maxWidth: '300px',
-                        lineHeight: '1.6',
-                        fontWeight: '500',
-                        opacity: 0.9
-                    }}>
-                        Financial freedom is the only purchase that enriches you in ways beyond material wealth.
-                    </p>
-
-                    {/* Decorative flow for budget logic */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '15%',
-                        right: '10%',
-                        opacity: 0.6
-                    }}>
-                        <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                            <path d="M10 80 Q 50 10 90 40" stroke="white" strokeWidth="2" strokeDasharray="5 5" />
-                            <circle cx="90" cy="40" r="4" fill="white" />
-                        </svg>
-                    </div>
-                </div>
-
-                {/* Right Side: Form */}
-                <div style={{
-                    flex: 1,
-                    padding: '60px 50px 40px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    backgroundColor: '#fff'
-                }}>
-                    <div style={{ marginBottom: '30px' }}>
-                        <h2 style={{
+                    <div style={{ marginBottom: 'clamp(25px, 6vw, 35px)', textAlign: 'center' }}>
+                        <h1 style={{
+                            fontFamily: "'Dancing Script', cursive",
                             fontSize: '2.5rem',
-                            fontWeight: '800',
+                            marginBottom: '10px',
                             color: '#02a9f4',
-                            margin: 0,
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                        }}>BudgetWise</h1>
+                        <h2 style={{
+                            fontSize: '1.8rem',
+                            fontWeight: '800',
+                            color: '#1e293b',
+                            margin: '0 0 5px 0',
                             letterSpacing: '-0.5px'
-                        }}>Welcome</h2>
-                        <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '5px' }}>Login with Email</p>
+                        }}>Welcome Back</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>Login to continue managing your finances</p>
                     </div>
 
                     {error && (
                         <div style={{
                             backgroundColor: '#fee2e2',
                             color: '#ef4444',
-                            padding: '12px',
-                            borderRadius: '10px',
-                            marginBottom: '20px',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            marginBottom: '25px',
                             fontSize: '0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px'
+                            gap: '10px',
+                            border: '1px solid #fca5a5'
                         }}>
-                            <AlertCircle size={18} />
-                            {error}
+                            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                            <span>{error}</span>
                         </div>
                     )}
 
@@ -169,7 +133,7 @@ const Login = () => {
                                 position: 'absolute',
                                 top: '-10px',
                                 left: '15px',
-                                background: 'white',
+                                background: 'linear-gradient(180deg, transparent 50%, white 50%)',
                                 padding: '0 5px',
                                 color: '#02a9f4',
                                 fontSize: '0.8rem',
@@ -177,24 +141,34 @@ const Login = () => {
                                 zIndex: 1
                             }}>Email Id</label>
                             <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>
+                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
                                 </span>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Enter your Gmail"
-                                    autoComplete="off"
+                                    placeholder="Enter your email"
+                                    autoComplete="email"
+                                    required
                                     style={{
                                         width: '100%',
                                         padding: '15px 15px 15px 45px',
-                                        border: '1.5px solid #02a9f4',
+                                        border: '1.5px solid #e2e8f0',
                                         borderRadius: '12px',
                                         fontSize: '1rem',
                                         outline: 'none',
                                         transition: 'all 0.2s',
-                                        background: 'transparent'
+                                        background: 'transparent',
+                                        color: '#334155'
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = '#02a9f4';
+                                        e.target.style.boxShadow = '0 0 0 3px rgba(2, 169, 244, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = '#e2e8f0';
+                                        e.target.style.boxShadow = 'none';
                                     }}
                                 />
                             </div>
@@ -206,7 +180,7 @@ const Login = () => {
                                 position: 'absolute',
                                 top: '-10px',
                                 left: '15px',
-                                background: 'white',
+                                background: 'linear-gradient(180deg, transparent 50%, white 50%)',
                                 padding: '0 5px',
                                 color: '#02a9f4',
                                 fontSize: '0.8rem',
@@ -214,7 +188,7 @@ const Login = () => {
                                 zIndex: 1
                             }}>Password</label>
                             <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>
+                                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                                 </span>
                                 <input
@@ -222,34 +196,47 @@ const Login = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Enter your password"
-                                    autoComplete="off"
+                                    autoComplete="current-password"
+                                    required
                                     style={{
                                         width: '100%',
                                         padding: '15px 15px 15px 45px',
-                                        border: '1.5px solid #02a9f4',
+                                        border: '1.5px solid #e2e8f0',
                                         borderRadius: '12px',
                                         fontSize: '1rem',
                                         outline: 'none',
                                         transition: 'all 0.2s',
-                                        background: 'transparent'
+                                        background: 'transparent',
+                                        color: '#334155'
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = '#02a9f4';
+                                        e.target.style.boxShadow = '0 0 0 3px rgba(2, 169, 244, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = '#e2e8f0';
+                                        e.target.style.boxShadow = 'none';
                                     }}
                                 />
                             </div>
                         </div>
 
-                        <div style={{ textAlign: 'right', marginTop: '-15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-15px' }}>
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 style={{
                                     background: 'none',
                                     border: 'none',
-                                    padding: 0,
-                                    fontSize: '0.75rem',
-                                    color: '#02a9f4',
+                                    padding: '4px 8px',
+                                    fontSize: '0.8rem',
+                                    color: '#64748b',
                                     cursor: 'pointer',
-                                    fontWeight: '600'
+                                    fontWeight: '500',
+                                    transition: 'color 0.2s'
                                 }}
+                                onMouseOver={(e) => e.target.style.color = '#02a9f4'}
+                                onMouseOut={(e) => e.target.style.color = '#64748b'}
                             >
                                 {showPassword ? 'Hide Password' : 'Show Password'}
                             </button>
@@ -259,83 +246,69 @@ const Login = () => {
                             type="submit"
                             disabled={loading}
                             style={{
-                                background: '#02a9f4',
+                                background: 'linear-gradient(to right, #02a9f4, #0288d1)',
                                 color: 'white',
-                                padding: '14px',
-                                borderRadius: '8px',
+                                padding: '16px',
+                                borderRadius: '12px',
                                 border: 'none',
                                 fontWeight: '700',
-                                letterSpacing: '1px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                boxShadow: '0 4px 15px rgba(2, 169, 244, 0.3)'
+                                letterSpacing: '0.5px',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                fontSize: '1rem',
+                                boxShadow: '0 10px 15px -3px rgba(2, 169, 244, 0.3)',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                opacity: loading ? 0.7 : 1
                             }}
+                            onMouseOver={(e) => { if(!loading) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                            onMouseOut={(e) => { if(!loading) e.currentTarget.style.transform = 'none' }}
+                            onMouseDown={(e) => { if(!loading) e.currentTarget.style.transform = 'translateY(0)' }}
                         >
                             {loading ? 'LOGGING IN...' : 'LOGIN'}
                         </button>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <div style={{ flex: 1, height: '1.5px', background: '#e2e8f0' }}></div>
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>OR</span>
-                            <div style={{ flex: 1, height: '1.5px', background: '#e2e8f0' }}></div>
+                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>OR</span>
+                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
                         </div>
 
                         {/* Social Buttons */}
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <button
                                 type="button"
                                 onClick={handleGoogleSignIn}
                                 style={{
-                                    background: '#f1f5f9',
-                                    padding: '12px 30px',
+                                    background: 'white',
+                                    padding: '14px',
                                     borderRadius: '12px',
                                     border: '1.5px solid #e2e8f0',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '10px',
+                                    justifyContent: 'center',
+                                    gap: '12px',
                                     transition: 'all 0.2s',
                                     width: '100%',
-                                    justifyContent: 'center'
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                 }}
                                 onMouseOver={(e) => {
-                                    e.currentTarget.style.background = '#e2e8f0';
-                                    e.currentTarget.style.borderColor = '#02a9f4';
+                                    e.currentTarget.style.background = '#f8fafc';
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
                                 }}
                                 onMouseOut={(e) => {
-                                    e.currentTarget.style.background = '#f1f5f9';
+                                    e.currentTarget.style.background = 'white';
                                     e.currentTarget.style.borderColor = '#e2e8f0';
                                 }}
                             >
                                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style={{ height: '22px' }} alt="google" />
-                                <span style={{ fontWeight: '600', color: '#475569' }}>Sign in with Google</span>
+                                <span style={{ fontWeight: '600', color: '#334155', fontSize: '0.95rem' }}>Continue with Google</span>
                             </button>
                         </div>
 
-                        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '10px' }}>
-                            Don't have account? <Link to="/signup" style={{ color: '#1e293b', fontWeight: '700', textDecoration: 'none' }}>Register Now</Link>
+                        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: '#64748b', marginTop: '10px' }}>
+                            Don't have an account? <Link to="/signup" style={{ color: '#02a9f4', fontWeight: '700', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={(e) => e.target.style.color = '#0288d1'} onMouseOut={(e) => e.target.style.color = '#02a9f4'}>Register Now</Link>
                         </p>
                     </form>
-
-                    {/* Skyline Illustration Footer */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        zIndex: 1,
-                        opacity: 0.1,
-                        pointerEvents: 'none'
-                    }}>
-                        <svg viewBox="0 0 1440 320" style={{ width: '100%', height: 'auto' }}>
-                            <path fill="#02a9f4" fillOpacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,256C960,245,1056,203,1152,186.7C1248,171,1344,181,1392,186.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-                            <rect x="100" y="50" width="40" height="270" fill="#02a9f4" />
-                            <rect x="250" y="100" width="30" height="220" fill="#02a9f4" />
-                            <rect x="600" y="30" width="50" height="290" fill="#02a9f4" />
-                            <rect x="900" y="80" width="40" height="240" fill="#02a9f4" />
-                            <rect x="1100" y="120" width="60" height="200" fill="#02a9f4" />
-                        </svg>
-                    </div>
                 </div>
             </main>
         </div>

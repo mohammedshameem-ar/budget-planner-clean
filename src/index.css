@@ -894,3 +894,40 @@ textarea:focus {
   align-items: center;
   justify-content: center;
 }
+
+/* Auth Page Responsiveness */
+.login-wrapper {
+  flex-direction: row !important;
+}
+
+@media (max-width: 768px) {
+  .auth-container {
+    align-items: flex-start !important;
+    padding: 40px 20px !important;
+    min-height: 100% !important;
+    height: auto !important;
+  }
+
+  .login-wrapper {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    border-radius: 20px !important;
+    margin: auto 0;
+  }
+  
+  .login-form-side {
+    padding: 30px 20px 20px !important;
+  }
+  
+  .login-illustration-side {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+    body {
+        /* Optional: allow scrolling on very small screens for the auth pages */
+        overflow-y: auto !important;
+    }
+}

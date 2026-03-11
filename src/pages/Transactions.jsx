@@ -33,6 +33,13 @@ const Transactions = () => {
         setFilterDate(today);
     }, []);
 
+    // Automatically show all dates when viewing Online Services
+    useEffect(() => {
+        if (filter === 'online_services') {
+            setFilterDate('');
+        }
+    }, [filter]);
+
     const filteredTransactions = transactions.filter(t => {
         const matchesDate = !filterDate || t.date === filterDate;
         if (filter === 'online_services') {
@@ -140,14 +147,26 @@ const Transactions = () => {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>History and filtering.</p>
                 </div>
                 <div className="flex-center" style={{ gap: '1rem', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <Calendar size={18} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-muted)' }} />
-                        <input
-                            type="date"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                            style={{ width: 'auto', paddingLeft: '2.5rem', fontSize: '0.875rem' }}
-                        />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <Calendar size={18} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-muted)' }} />
+                            <input
+                                type="date"
+                                value={filterDate}
+                                onChange={(e) => setFilterDate(e.target.value)}
+                                style={{ width: 'auto', paddingLeft: '2.5rem', fontSize: '0.875rem' }}
+                            />
+                        </div>
+                        {filterDate && (
+                            <button
+                                onClick={() => setFilterDate('')}
+                                className="btn btn-outline"
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}
+                                title="Clear date filter to show all history"
+                            >
+                                All Dates
+                            </button>
+                        )}
                     </div>
                     <select
                         value={filter}

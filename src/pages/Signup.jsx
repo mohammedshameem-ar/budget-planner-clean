@@ -40,7 +40,7 @@ const Signup = () => {
     };
 
     return (
-        <div style={{
+        <div className="auth-container" style={{
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
@@ -48,7 +48,6 @@ const Signup = () => {
             background: '#02a9f4',
             padding: '20px',
             position: 'relative',
-            overflow: 'hidden',
             fontFamily: "'Outfit', sans-serif"
         }}>
             {/* Decorative background circles */}
@@ -73,7 +72,7 @@ const Signup = () => {
                 zIndex: 1
             }}></div>
 
-            <main style={{
+            <main className="login-wrapper" style={{
                 width: '100%',
                 maxWidth: '1000px',
                 background: 'white',
@@ -85,7 +84,7 @@ const Signup = () => {
                 minHeight: '650px'
             }}>
                 {/* Left Side: Illustration & Quote */}
-                <div style={{
+                <div className="login-illustration-side" style={{
                     flex: 1,
                     position: 'relative',
                     background: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=2070&auto=format&fit=crop')",
@@ -130,7 +129,7 @@ const Signup = () => {
                 </div>
 
                 {/* Right Side: Form */}
-                <div style={{
+                <div className="login-form-side" style={{
                     flex: 1,
                     padding: '50px 50px 40px',
                     display: 'flex',
