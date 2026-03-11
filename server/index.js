@@ -173,7 +173,11 @@ app.post('/api/test-notification', async (req, res) => {
             message: 'Test notification processed.', 
             successCount, 
             failureCount,
-            error: firstError 
+            error: firstError,
+            endpoints: uniqueDocs.map(({ data: sub }) => {
+                const url = sub.endpoint || '';
+                return url.length > 20 ? '...' + url.slice(-20) : url;
+            })
         });
 
     } catch (error) {
