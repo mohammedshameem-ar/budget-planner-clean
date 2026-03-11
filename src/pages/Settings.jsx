@@ -197,6 +197,20 @@ const Settings = () => {
         fetchKey();
     }, []);
 
+    useEffect(() => {
+        if (!('serviceWorker' in navigator)) return;
+        
+        const handleMessage = (event) => {
+            if (event.data && event.data.type === 'PUSH_RECEIVED') {
+                console.log('[Settings] SW reported push received:', event.data);
+                alert(`🔔 DEBUG: Service Worker received the push event!\n\nPayload: ${JSON.stringify(event.data.payload)}\nTime: ${event.data.timestamp}\n\nIf you see this but NO system notification, the issue is with Windows/Chrome notification settings.`);
+            }
+        };
+
+        navigator.serviceWorker.addEventListener('message', handleMessage);
+        return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+    }, []);
+
     const handleInstallClick = async () => {
         if (!deferredPrompt) return;
 

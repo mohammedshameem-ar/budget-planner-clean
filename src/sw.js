@@ -18,42 +18,44 @@ clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push event received at:', new Date().toISOString());
+    console.log('[SW v1.4.0] Push event received');
 
     let data = {};
     if (event.data) {
         try {
             data = event.data.json();
-            console.log('[SW] Push JSON payload:', data);
         } catch (e) {
-            const rawText = event.data.text();
-            console.warn('[SW] Push payload not JSON, using text:', rawText);
-            data = { body: rawText };
+            data = { body: event.data.text() };
         }
-    } else {
-        console.warn('[SW] Push event has no data!');
     }
 
-    const title = data.title || 'BudgetWise Update';
+    // Broadcast to all open tabs so the UI can show a debug message
+    const broadcastPush = self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((windowClients) => {
+            windowClients.forEach((client) => {
+                client.postMessage({
+                    type: 'PUSH_RECEIVED',
+                    payload: data,
+                    timestamp: new Date().toISOString()
+                });
+            });
+        });
+
+    const title = data.title || 'BudgetWise';
     const options = {
-        body: data.body || 'You have a new message from BudgetWise.',
-        icon: data.icon || '/logo.svg',
-        badge: '/logo.svg',
-        tag: data.tag || 'budgetwise-notification-tag',
+        body: data.body || 'New notification',
+        tag: data.tag || 'budgetwise-test',
         data: data.data || { url: '/' },
-        // Essential properties for reliable display on Windows/Chrome
         requireInteraction: true,
         renotify: true,
-        silent: false,
         vibrate: [200, 100, 200]
     };
 
-    console.log('[SW] Showing notification with options:', options);
-
     event.waitUntil(
-        self.registration.showNotification(title, options)
-            .then(() => console.log('[SW] showNotification successful'))
-            .catch((err) => console.error('[SW] Notification display FAILED:', err))
+        Promise.all([
+            broadcastPush,
+            self.registration.showNotification(title, options)
+        ])
     );
 });
 
