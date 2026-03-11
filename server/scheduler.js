@@ -86,20 +86,10 @@ async function runScheduler(force = false) {
                                 if (data.type === 'expense') {
                                     if (data.date === todayStr) {
                                         totalSpentToday += data.amount || 0;
-                                        todayCategoryTotals[data.category] = (todayCategoryTotals[data.category] || 0) + (data.amount || 0);
                                     }
                                     if (data.date && data.date.startsWith(monthStr)) {
                                         totalSpentMonth += data.amount || 0;
                                     }
-                                }
-                            });
-
-                            let highestCategory = 'None';
-                            let highestCategoryAmount = 0;
-                            Object.entries(todayCategoryTotals).forEach(([cat, amt]) => {
-                                if (amt > highestCategoryAmount) {
-                                    highestCategoryAmount = amt;
-                                    highestCategory = cat;
                                 }
                             });
 
@@ -126,11 +116,9 @@ async function runScheduler(force = false) {
                                 availableBalanceStr = `\nAvailable Balance: ₹${(income - totalSpentMonth).toLocaleString('en-IN')}`;
                             }
 
-                            const highCatStr = highestCategory !== 'None' ? `\nOverspent: ${highestCategory.charAt(0).toUpperCase() + highestCategory.slice(1)} (₹${highestCategoryAmount.toLocaleString('en-IN')})` : '';
-
                             const payload = JSON.stringify({
                                 title: 'BudgetWise Daily Summary',
-                                body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}${highCatStr}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
+                                body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
                                 tag: `daily-summary-${todayStr}`,
                                 icon: '/logo.svg',
                                 badge: '/logo.svg'
