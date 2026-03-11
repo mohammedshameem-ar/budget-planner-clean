@@ -44,33 +44,10 @@ const Login = () => {
             background: 'linear-gradient(135deg, #02a9f4 0%, #01579b 100%)',
             padding: '20px',
             position: 'relative',
+            overflow: 'hidden',
             fontFamily: "'Outfit', sans-serif"
         }}>
-            {/* Decorative background circles */}
-            <div style={{
-                position: 'absolute',
-                top: '-5%',
-                left: '-5%',
-                width: 'clamp(150px, 30vw, 300px)',
-                height: 'clamp(150px, 30vw, 300px)',
-                background: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '50%',
-                zIndex: 1,
-                backdropFilter: 'blur(5px)',
-                animation: 'float 6s ease-in-out infinite'
-            }}></div>
-            <div style={{
-                position: 'absolute',
-                bottom: '-10%',
-                right: '-10%',
-                width: 'clamp(200px, 40vw, 400px)',
-                height: 'clamp(200px, 40vw, 400px)',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                zIndex: 1,
-                backdropFilter: 'blur(5px)',
-                animation: 'float 8s ease-in-out infinite reverse'
-            }}></div>
+
 
             <main className="login-wrapper" style={{
                 width: '100%',

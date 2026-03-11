@@ -8,7 +8,7 @@ import ActivityCalendar from '../components/ActivityCalendar';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const Reports = () => {
-    const { transactions, budgetLimit, income, savings, db, incomeEnabled } = useBudget();
+    const { transactions, budgetLimit, income, savings, db, incomeEnabled, budgetEnabled } = useBudget();
     const { user } = useAuth();
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
     const [historicStats, setHistoricStats] = useState(null);
@@ -75,6 +75,10 @@ const Reports = () => {
     const activeTransactions = selectedArchive ? (selectedArchive.transactions || []) : transactions;
     const activeIncomeEnabled = selectedArchive ? (selectedArchive.incomeEnabled !== false) : baseIncomeEnabled;
 
+    // Also track budgetEnabled - historical months store this; current month uses context
+    const baseBudgetEnabled = historicStats ? (historicStats.budgetEnabled !== false) : budgetEnabled;
+    const activeBudgetEnabled = selectedArchive ? (selectedArchive.budgetEnabled !== false) : baseBudgetEnabled;
+
     const generatePDF = () => {
         try {
             const doc = new jsPDF();
@@ -99,7 +103,17 @@ const Reports = () => {
             // Fallback to global setting if no income transactions for the month
             const displayIncome = monthIncome > 0 ? monthIncome : (activeIncome || 0);
 
-            const budgetRemaining = activeBudgetLimit - totalExp;
+            let budgetLimitDisplay = `INR ${(activeBudgetLimit || 0).toLocaleString()}`;
+            let budgetRemainingDisplay = `INR ${(activeBudgetLimit - totalExp || 0).toLocaleString()}`;
+
+            // Check if budget was enabled for the period
+            // Note: baseBudgetEnabled and activeBudgetEnabled are already defined outside this function
+            // Re-defining them here would shadow the outer variables.
+            // The existing logic correctly uses the already defined activeBudgetEnabled.
+            if (!activeBudgetEnabled) {
+                budgetLimitDisplay = 'Not Tracked';
+                budgetRemainingDisplay = 'Not Tracked';
+            }
 
             let netSavingsDisplay = 'Not Tracked';
             if (activeIncomeEnabled) {
@@ -133,11 +147,13 @@ const Reports = () => {
 
             // Summary Section - Key Metrics as professional cards/grid
             const incomeDisplayStr = activeIncomeEnabled ? `INR ${(displayIncome || 0).toLocaleString()}` : 'Not Tracked';
+            const budgetLimitStr = activeBudgetEnabled ? `INR ${(activeBudgetLimit || 0).toLocaleString()}` : 'Not Tracked';
+            const budgetRemainingStr = activeBudgetEnabled ? `INR ${(activeBudgetLimit - totalExp || 0).toLocaleString()}` : 'Not Tracked';
             const summaryData = [
                 ['Total Monthly Income', incomeDisplayStr],
                 ['Total Monthly Expenses', `INR ${(totalExp || 0).toLocaleString()}`],
-                ['Monthly Budget Limit', `INR ${(activeBudgetLimit || 0).toLocaleString()}`],
-                ['Remaining Budget', `INR ${(budgetRemaining || 0).toLocaleString()}`],
+                ['Monthly Budget Limit', budgetLimitDisplay],
+                ['Remaining Budget', budgetRemainingDisplay],
                 ['Net Month Savings', netSavingsDisplay],
                 ['Total Balance Savings', `INR ${(savings || 0).toLocaleString()}`]
             ];
@@ -269,7 +285,8 @@ const Reports = () => {
             doc.setTextColor(100, 100, 100);
 
             const incomeText = mIncomeEnabled ? `INR ${mIncome.toLocaleString()}` : 'Not Tracked';
-            doc.text(`Income: ${incomeText}  |  Budget: INR ${mBudget.toLocaleString()}`, 14, currentY + 6);
+            const budgetText = (statsMap[month].budgetEnabled !== false) ? `INR ${mBudget.toLocaleString()}` : 'Not Tracked';
+            doc.text(`Income: ${incomeText}  |  Budget: ${budgetText}`, 14, currentY + 6);
 
             doc.setFontSize(11);
             doc.setTextColor(220, 38, 38); // Danger color for expenses
