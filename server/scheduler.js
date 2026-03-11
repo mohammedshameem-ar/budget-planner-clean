@@ -31,20 +31,25 @@ async function runScheduler(force = false) {
             if (notificationsEnabled && reminderTime && timezone) {
                 try {
                     // Get current time in user's timezone (HH:mm)
-                    const currentLocalTime = new Intl.DateTimeFormat('en-US', {
+                    const formatOptions = {
                         timeZone: timezone,
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: false
-                    }).format(nowJS);
+                    };
+                    const currentLocalTimeRaw = new Intl.DateTimeFormat('en-US', formatOptions).format(nowJS);
+                    // Strip any Unicode control characters (like \u200e) that Intl sometimes adds
+                    const currentLocalTime = currentLocalTimeRaw.replace(/[^\d:]/g, '');
 
                     const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
 
                     // LOGIC: Should we send daily summary?
                     // 1. If it's the exact minute (Cron mode)
                     // 2. OR if it's PAST the time today and hasn't been sent yet (Missed/Forced mode)
-                    let due = (currentLocalTime === reminderTime);
-                    if (force || currentLocalTime > reminderTime) {
+                    const normalizedReminderTime = reminderTime.replace(/[^\d:]/g, '');
+                    let due = (currentLocalTime === normalizedReminderTime);
+                    
+                    if (force || currentLocalTime > normalizedReminderTime) {
                          if (userData.dailyReminderLastSentDate !== todayStr) {
                              due = true;
                          }
@@ -106,6 +111,7 @@ async function runScheduler(force = false) {
                             );
                             await Promise.all(sendPromises);
                             sentCount++;
+                            console.log(`[Scheduler] Successfully sent daily summary to ${userId}`);
                         }
                     }
                 } catch (err) {
@@ -172,6 +178,7 @@ async function runScheduler(force = false) {
                         );
                         await Promise.all(sendPromises);
                         sentCount++;
+                        console.log(`[Scheduler] Successfully sent reminder "${reminder.notes}" to ${userId}`);
                     }
                 }
             }
@@ -194,6 +201,8 @@ function calculateNextTime(currentDate, recurrence) {
 
 // Actual Cron Job (runs every minute)
 cron.schedule('* * * * *', () => {
+    const timestamp = new Date().toISOString();
+    console.log(`[Scheduler] Background Heartbeat - ${timestamp}`);
     runScheduler(false).catch(err => console.error('[Scheduler] Cron failed:', err));
 });
 
