@@ -106,19 +106,22 @@ async function runScheduler(force = false) {
                                 budgetEnabled = typeof pData.budgetEnabled === 'boolean' ? pData.budgetEnabled : true;
                             }
 
-                            let remaining = 'None';
+                            // 4-Case Notification Logic
+                            let body = `Today: ₹${totalSpentToday.toLocaleString('en-IN')}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}`;
+                            
                             if (budgetEnabled && budgetLimit > 0) {
-                                remaining = `₹${(budgetLimit - totalSpentMonth).toLocaleString('en-IN')}`;
+                                const remaining = budgetLimit - totalSpentMonth;
+                                body += `\nRemaining: ₹${remaining.toLocaleString('en-IN')}`;
                             }
 
-                            let availableBalanceStr = '';
-                            if (incomeEnabled && budgetEnabled && income > 0) {
-                                availableBalanceStr = `\nAvailable Balance: ₹${(income - totalSpentMonth).toLocaleString('en-IN')}`;
+                            if (incomeEnabled && income > 0) {
+                                const availableBalance = income - totalSpentMonth;
+                                body += `\nAvailable Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
                             }
 
                             const payload = JSON.stringify({
                                 title: 'BudgetWise Daily Summary',
-                                body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
+                                body: body,
                                 tag: `daily-summary-${todayStr}`,
                                 icon: '/logo.svg',
                                 badge: '/logo.svg'
