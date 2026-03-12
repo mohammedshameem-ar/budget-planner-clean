@@ -150,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     console.log('Initializing Firestore profile...');
-    const profileRef = doc(db, 'users', firebaseUser.uid, 'profile', 'settings');
+    const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'settings');
     await setDoc(profileRef, {
       budgetLimit: 0,
       income: 0,
@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }) => {
       const firebaseUser = result.user;
 
       // Check if profile exists, if not initialize it
-      const profileRef = doc(db, 'users', firebaseUser.uid, 'profile', 'settings');
+      const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'settings');
       const profileSnap = await getDoc(profileRef);
 
       if (!profileSnap.exists()) {

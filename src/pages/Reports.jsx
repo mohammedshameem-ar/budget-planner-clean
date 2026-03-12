@@ -29,7 +29,7 @@ const Reports = () => {
             }
 
             try {
-                const statsRef = doc(db, 'users', user.id, 'monthlyStats', selectedMonth);
+                const statsRef = doc(db, 'users', user.id, 'transactionDetails', 'monthlyStats', selectedMonth);
                 const snap = await getDoc(statsRef);
                 if (snap.exists()) {
                     setHistoricStats(snap.data());
@@ -38,7 +38,7 @@ const Reports = () => {
                 }
 
                 // Fetch archives for this month
-                const archivesRef = collection(db, 'users', user.id, 'archives');
+                const archivesRef = collection(db, 'users', user.id, 'transactionDetails', 'archives');
                 const q = query(archivesRef, where('month', '==', selectedMonth));
                 const archiveSnap = await getDocs(q);
 
@@ -241,7 +241,7 @@ const Reports = () => {
                 statsMap[m] = { income, budgetLimit, incomeEnabled };
             } else {
                 try {
-                    const snap = await getDoc(doc(db, 'users', user.id, 'monthlyStats', m));
+                    const snap = await getDoc(doc(db, 'users', user.id, 'transactionDetails', 'monthlyStats', m));
                     if (snap.exists()) {
                         statsMap[m] = { ...snap.data() };
                     } else {

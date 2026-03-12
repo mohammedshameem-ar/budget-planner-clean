@@ -74,7 +74,7 @@ async function runScheduler(force = false) {
 
                         if (shouldSend) {
                             console.log(`[Scheduler] Sending Daily Summary for user ${userId}`);
-                            const txSnap = await userDoc.ref.collection('transactions').get();
+                            const txSnap = await userDoc.ref.collection('transactionDetails').get();
                             const monthStr = todayStr.substring(0, 7);
 
                             let totalSpentToday = 0;
@@ -97,7 +97,7 @@ async function runScheduler(force = false) {
                             let income = 0;
                             let incomeEnabled = true;
                             let budgetEnabled = true;
-                            const profileSettingsSnap = await userDoc.ref.collection('profile').doc('settings').get();
+                            const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('settings').get();
                             if (profileSettingsSnap.exists) {
                                 const pData = profileSettingsSnap.data();
                                 budgetLimit = pData.budgetLimit || 0;
@@ -141,7 +141,7 @@ async function runScheduler(force = false) {
             }
 
             // --- COMPONENT REMINDERS LOGIC ---
-            const remindersRef = userDoc.ref.collection('reminders');
+            const remindersRef = userDoc.ref.collection('transactionDetails').doc('reminders').collection('userReminders');
             const remindersSnap = await remindersRef.where('enabled', '==', true).where('completed', '==', false).get();
 
             for (const remDoc of remindersSnap.docs) {

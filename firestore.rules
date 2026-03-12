@@ -63,6 +63,11 @@ service cloud.firestore {
       match /archives/{document=**} {
         allow read, write: if isOwner(userId);
       }
+
+      // Unified transactionDetails collection
+      match /transactionDetails/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }

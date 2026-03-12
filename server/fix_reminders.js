@@ -7,7 +7,7 @@ async function fixReminders() {
         let fixedCount = 0;
 
         for (const userDoc of usersSnap.docs) {
-            const remindersSnap = await userDoc.ref.collection('reminders').get();
+            const remindersSnap = await userDoc.ref.collection('transactionDetails').doc('reminders').collection('userReminders').get();
             for (const remDoc of remindersSnap.docs) {
                 const data = remDoc.data();
                 if (data.completed === undefined) {

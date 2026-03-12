@@ -15,7 +15,7 @@ async function diagnose() {
             console.log(`- dailyReminder (legacy):`, userData.dailyReminder);
 
             // Check reminders
-            const remindersSnap = await userDoc.ref.collection('reminders').get();
+            const remindersSnap = await userDoc.ref.collection('transactionDetails').doc('reminders').collection('userReminders').get();
             console.log(`- Active Reminders: ${remindersSnap.size}`);
             remindersSnap.docs.forEach(rd => {
                 const r = rd.data();

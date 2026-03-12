@@ -45,7 +45,7 @@ export const BudgetProvider = ({ children }) => {
             return;
         }
 
-        const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+        const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
 
         const unsubscribe = onSnapshot(profileRef, async (profileSnap) => {
             try {
@@ -64,11 +64,11 @@ export const BudgetProvider = ({ children }) => {
                         // Month has changed, perform rollover
 
                         // 1. Snapshot the previous month's final state
-                        const statsRef = doc(db, 'users', user.id, 'monthlyStats', lastActiveMonth);
+                        const statsRef = doc(db, 'users', user.id, 'transactionDetails', 'monthlyStats', lastActiveMonth);
                         await setDoc(statsRef, {
                             income: currentIncome,
                             budgetLimit: currentBudgetLimit,
-                            carryOverBalance: currentCarryOverBalance, // The balance they started the month with
+                            carryOverBalance: currentCarryOverBalance,
                             incomeEnabled: data.incomeEnabled !== false,
                             budgetEnabled: data.budgetEnabled !== false,
                             savedAt: Timestamp.now()
@@ -139,7 +139,7 @@ export const BudgetProvider = ({ children }) => {
     useEffect(() => {
         if (!user) return;
 
-        const plansRef = collection(db, 'users', user.id, 'plans');
+        const plansRef = collection(db, 'users', user.id, 'transactionDetails', 'plans', 'userPlans');
         const q = query(plansRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -159,7 +159,7 @@ export const BudgetProvider = ({ children }) => {
     useEffect(() => {
         if (!user) return;
 
-        const remindersRef = collection(db, 'users', user.id, 'reminders');
+        const remindersRef = collection(db, 'users', user.id, 'transactionDetails', 'reminders', 'userReminders');
         const q = query(remindersRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -182,16 +182,18 @@ export const BudgetProvider = ({ children }) => {
             return;
         }
 
-        const transactionsRef = collection(db, 'users', user.id, 'transactions');
+        const transactionsRef = collection(db, 'users', user.id, 'transactionDetails');
         const q = query(transactionsRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const transactionsList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                // Convert Firestore Timestamp to ISO string
-                date: doc.data().date?.toDate?.()?.toISOString().split('T')[0] || doc.data().date
-            }));
+            const transactionsList = snapshot.docs
+                .filter(doc => !['settings', 'summary'].includes(doc.id)) // Filter out settings and summary
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    // Convert Firestore Timestamp to ISO string
+                    date: doc.data().date?.toDate?.()?.toISOString().split('T')[0] || doc.data().date
+                }));
             setTransactions(transactionsList);
             setLoading(false);
         }, (error) => {
@@ -202,12 +204,38 @@ export const BudgetProvider = ({ children }) => {
         return unsubscribe;
     }, [user]);
 
+    // Synchronize summary data to Firestore
+    useEffect(() => {
+        if (!user || loading) return;
+
+        const syncSummary = async () => {
+            try {
+                const summaryData = getSummary();
+                const summaryRef = doc(db, 'users', user.id, 'transactionDetails', 'summary');
+                await setDoc(summaryRef, {
+                    totalIncome: summaryData.totalIncome,
+                    availableBalance: summaryData.availableBalance,
+                    totalExpenses: summaryData.totalExpenses,
+                    budgetLimit: summaryData.budgetLimit,
+                    remainingBudget: summaryData.remainingBudget,
+                    updatedAt: Timestamp.now()
+                }, { merge: true });
+            } catch (error) {
+                console.error('Error syncing summary to Firestore:', error);
+            }
+        };
+
+        // Small timeout to debounce frequent updates (e.g., during bulk operations)
+        const timeoutId = setTimeout(syncSummary, 1000);
+        return () => clearTimeout(timeoutId);
+    }, [user, transactions, income, budgetLimit, savings, balanceContributedToSavings, carryOverBalance, incomeEnabled, budgetEnabled, loading]);
+
     const addTransaction = async (transaction) => {
         if (!user) return;
 
         try {
             const transactionId = uuidv4();
-            const transactionRef = doc(db, 'users', user.id, 'transactions', transactionId);
+            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', transactionId);
 
             // If category is 'savings', add to savings total
             if (transaction.category === 'savings') {
@@ -229,7 +257,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const transactionRef = doc(db, 'users', user.id, 'transactions', id);
+            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', id);
             await deleteDoc(transactionRef);
         } catch (error) {
             console.error('Error deleting transaction:', error);
@@ -240,9 +268,11 @@ export const BudgetProvider = ({ children }) => {
     const clearTransactions = async () => {
         if (!user) return;
         try {
-            const transactionsRef = collection(db, 'users', user.id, 'transactions');
+            const transactionsRef = collection(db, 'users', user.id, 'transactionDetails');
             const snapshot = await getDocs(transactionsRef);
-            const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+            const deletePromises = snapshot.docs
+                .filter(doc => !['settings', 'summary'].includes(doc.id))
+                .map(doc => deleteDoc(doc.ref));
             await Promise.all(deletePromises);
             setTransactions([]);
         } catch (error) {
@@ -256,7 +286,7 @@ export const BudgetProvider = ({ children }) => {
 
         try {
             const planId = uuidv4();
-            const planRef = doc(db, 'users', user.id, 'plans', planId);
+            const planRef = doc(db, 'users', user.id, 'transactionDetails', 'plans', 'userPlans', planId);
 
             await setDoc(planRef, {
                 ...plan,
@@ -272,7 +302,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const planRef = doc(db, 'users', user.id, 'plans', id);
+            const planRef = doc(db, 'users', user.id, 'transactionDetails', 'plans', 'userPlans', id);
             await deleteDoc(planRef);
         } catch (error) {
             console.error('Error deleting plan:', error);
@@ -284,7 +314,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const planRef = doc(db, 'users', user.id, 'plans', id);
+            const planRef = doc(db, 'users', user.id, 'transactionDetails', 'plans', 'userPlans', id);
             await setDoc(planRef, {
                 ...data,
                 updatedAt: Timestamp.now()
@@ -299,7 +329,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
         try {
             const reminderId = uuidv4();
-            const reminderRef = doc(db, 'users', user.id, 'reminders', reminderId);
+            const reminderRef = doc(db, 'users', user.id, 'transactionDetails', 'reminders', 'userReminders', reminderId);
 
             // Calculate nextNotificationTime
             const [hours, minutes] = reminder.time.split(':').map(Number);
@@ -334,7 +364,7 @@ export const BudgetProvider = ({ children }) => {
     const deleteReminder = async (id) => {
         if (!user) return;
         try {
-            const reminderRef = doc(db, 'users', user.id, 'reminders', id);
+            const reminderRef = doc(db, 'users', user.id, 'transactionDetails', 'reminders', 'userReminders', id);
             await deleteDoc(reminderRef);
         } catch (error) {
             console.error('Error deleting reminder:', error);
@@ -345,7 +375,7 @@ export const BudgetProvider = ({ children }) => {
     const updateIncomeEnabled = async (value) => {
         if (!user) return;
         try {
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 incomeEnabled: value,
                 updatedAt: Timestamp.now()
@@ -360,7 +390,7 @@ export const BudgetProvider = ({ children }) => {
     const updateBudgetEnabled = async (value) => {
         if (!user) return;
         try {
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 budgetEnabled: value,
                 updatedAt: Timestamp.now()
@@ -376,7 +406,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 budgetLimit: parseFloat(amount),
                 income: income,
@@ -398,7 +428,7 @@ export const BudgetProvider = ({ children }) => {
             // Reset transactions as per user request
             await clearTransactions();
 
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 income: parseFloat(amount),
                 budgetLimit: budgetLimit,
@@ -417,7 +447,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 income: income,
                 budgetLimit: budgetLimit,
@@ -453,7 +483,7 @@ export const BudgetProvider = ({ children }) => {
         }
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             const newContributed = balanceContributedToSavings + val;
             const newSavings = savings + val;
 
@@ -480,7 +510,7 @@ export const BudgetProvider = ({ children }) => {
             // Archive the current setup and transactions before deletion
             if (transactions.length > 0) {
                 const archiveId = uuidv4();
-                const archiveRef = doc(db, 'users', user.id, 'archives', archiveId);
+                const archiveRef = doc(db, 'users', user.id, 'transactionDetails', 'archives', archiveId);
 
                 await setDoc(archiveRef, {
                     month: currentMonthStr,
@@ -497,7 +527,7 @@ export const BudgetProvider = ({ children }) => {
             await clearTransactions();
 
             // Reset profile settings in Firestore
-            const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
             await setDoc(profileRef, {
                 budgetLimit: 0,
                 income: 0,

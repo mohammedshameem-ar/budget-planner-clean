@@ -20,7 +20,7 @@ const MainLayout = ({ children }) => {
                 const { doc, getDoc, setDoc, Timestamp } = await import('firebase/firestore');
                 if (!db || !user?.id) return;
 
-                const profileRef = doc(db, 'users', user.id, 'profile', 'settings');
+                const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
                 const profileSnap = await getDoc(profileRef);
 
                 if (!profileSnap.exists()) {
@@ -90,7 +90,7 @@ const MainLayout = ({ children }) => {
                         }
 
                         // Update Firestore
-                        const ref = doc(db, 'users', user.id, 'reminders', reminder.id);
+                        const ref = doc(db, 'users', user.id, 'transactionDetails', 'reminders', 'userReminders', reminder.id);
                         const updateData = {
                             updatedAt: Timestamp.now()
                         };
