@@ -9,6 +9,8 @@ import {
     Banknote,
     TrendingUp,
     Wallet,
+    CreditCard,
+    Smartphone,
     MoreHorizontal
 } from 'lucide-react';
 import { ONLINE_SERVICES } from './OnlineServicesForm';
@@ -24,6 +26,8 @@ export const categoryIcons = {
     salary: Banknote,
     investment: TrendingUp,
     savings: Wallet,
+    billings: CreditCard,
+    recharges: Smartphone,
     others: MoreHorizontal
 };
 

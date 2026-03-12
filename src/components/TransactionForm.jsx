@@ -3,7 +3,7 @@ import { useBudget } from '../context/BudgetContext';
 import Modal from './Modal';
 
 const categories = [
-    'food', 'transport', 'utilities', 'entertainment', 'health', 'shopping', 'housing', 'salary', 'investment', 'savings', 'others'
+    'food', 'transport', 'utilities', 'entertainment', 'health', 'shopping', 'housing', 'salary', 'investment', 'savings', 'billings', 'recharges', 'others'
 ];
 
 const TransactionForm = ({ onClose }) => {

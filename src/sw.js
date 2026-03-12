@@ -18,7 +18,7 @@ clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    console.log('[SW v1.4.0] Push event received');
+    console.log('[SW v1.5.0] Push event received');
 
     let data = {};
     if (event.data) {
@@ -29,7 +29,20 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    // Broadcast to all open tabs so the UI can show a debug message
+    const title = data.title || 'BudgetWise';
+    const options = {
+        body: data.body || 'New notification',
+        icon: data.icon || '/logo.svg',
+        badge: data.badge || '/logo.svg',
+        tag: data.tag || 'budgetwise-notification',
+        data: data.data || { url: '/' },
+        requireInteraction: true,
+        renotify: true,
+        vibrate: [200, 100, 200],
+        actions: data.actions || []
+    };
+
+    // Broadcast to open tabs
     const broadcastPush = self.clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((windowClients) => {
             windowClients.forEach((client) => {
@@ -40,16 +53,6 @@ self.addEventListener('push', (event) => {
                 });
             });
         });
-
-    const title = data.title || 'BudgetWise';
-    const options = {
-        body: data.body || 'New notification',
-        tag: data.tag || 'budgetwise-test',
-        data: data.data || { url: '/' },
-        requireInteraction: true,
-        renotify: true,
-        vibrate: [200, 100, 200]
-    };
 
     event.waitUntil(
         Promise.all([

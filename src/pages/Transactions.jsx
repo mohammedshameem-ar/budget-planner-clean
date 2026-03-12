@@ -53,7 +53,7 @@ const Transactions = () => {
         const expenses = transactions.filter(t => t.type === 'expense');
 
         // Define all possible categories to ensure bars align
-        const allCategories = ['food', 'transport', 'entertainment', 'utilities', 'health', 'shopping', 'housing', 'investment', 'others'];
+        const allCategories = ['food', 'transport', 'entertainment', 'utilities', 'health', 'shopping', 'housing', 'investment', 'billings', 'recharges', 'others'];
 
         const todayStats = {};
         const monthStats = {};
@@ -184,6 +184,8 @@ const Transactions = () => {
                         <option value="housing">Housing</option>
                         <option value="salary">Salary</option>
                         <option value="investment">Investment</option>
+                        <option value="billings">Billings</option>
+                        <option value="recharges">Recharges</option>
                         <option value="others">Others</option>
                     </select>
                 </div>
