@@ -38,7 +38,7 @@ const Reports = () => {
                 }
 
                 // Fetch archives for this month
-                const archivesRef = collection(db, 'users', user.id, 'transactionDetails', 'archives');
+                const archivesRef = collection(db, 'users', user.id, 'transactionDetails', 'archives', 'history');
                 const q = query(archivesRef, where('month', '==', selectedMonth));
                 const archiveSnap = await getDocs(q);
 

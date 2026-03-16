@@ -19,192 +19,210 @@ async function runScheduler(force = false) {
         let sentCount = 0;
 
         for (const userDoc of usersSnap.docs) {
-            const userId = userDoc.id;
-            const userData = userDoc.data();
-            processedCount++;
+            try {
+                const userId = userDoc.id;
+                const userData = userDoc.data();
+                processedCount++;
 
-            // --- DAILY BUDGET SUMMARY REMINDER LOGIC ---
-            const notificationsEnabled = userData.notificationsEnabled || (userData.dailyReminder && userData.dailyReminder.enabled);
-            const reminderTime = userData.reminderTime || (userData.dailyReminder && userData.dailyReminder.time);
-            const timezone = userData.timezone || (userData.dailyReminder && userData.dailyReminder.timezone);
+                const userTimezone = userData.timezone || 'UTC';
 
-            if (notificationsEnabled && reminderTime && timezone) {
-                try {
-                    // Get current time in user's timezone (HH:mm)
-                    const formatOptions = {
-                        timeZone: timezone,
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                    };
-                    const currentLocalTimeRaw = new Intl.DateTimeFormat('en-US', formatOptions).format(nowJS);
-                    // Strip any Unicode control characters (like \u200e) that Intl sometimes adds
-                    const currentLocalTime = currentLocalTimeRaw.replace(/[^\d:]/g, '');
+                // --- DAILY BUDGET SUMMARY REMINDER LOGIC ---
+                const notificationsEnabled = userData.notificationsEnabled || (userData.dailyReminder && userData.dailyReminder.enabled);
+                const reminderTime = userData.reminderTime || (userData.dailyReminder && userData.dailyReminder.time);
 
-                    const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
+                if (notificationsEnabled && reminderTime && userTimezone) {
+                    try {
+                        // Get current time in user's timezone (HH:mm)
+                        const formatOptions = {
+                            timeZone: userTimezone,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        };
+                        const currentLocalTimeRaw = new Intl.DateTimeFormat('en-US', formatOptions).format(nowJS);
+                        const currentLocalTime = currentLocalTimeRaw.replace(/[^\d:]/g, '');
 
-                    // LOGIC: Should we send daily summary?
-                    // 1. If it's the exact minute (Cron mode)
-                    // 2. OR if it's PAST the time today and hasn't been sent yet (Missed/Forced mode)
-                    const normalizedReminderTime = reminderTime.replace(/[^\d:]/g, '');
-                    let due = (currentLocalTime === normalizedReminderTime);
-                    
-                    if (force || currentLocalTime > normalizedReminderTime) {
-                         if (userData.dailyReminderLastSentDate !== todayStr) {
-                             due = true;
-                         }
-                    }
+                        const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
 
-                    if (due) {
-                        let shouldSend = false;
-                        await db.runTransaction(async (t) => {
-                            const userRef = db.collection('users').doc(userId);
-                            const userDocForTx = await t.get(userRef);
-                            if (!userDocForTx.exists) return;
+                        const normalizedReminderTime = reminderTime.replace(/[^\d:]/g, '');
+                        let due = (currentLocalTime === normalizedReminderTime);
+                        
+                        if (force || currentLocalTime > normalizedReminderTime) {
+                             if (userData.dailyReminderLastSentDate !== todayStr) {
+                                 due = true;
+                             }
+                        }
 
-                            const uData = userDocForTx.data();
-                            if (uData.dailyReminderLastSentDate !== todayStr) {
-                                t.update(userRef, {
-                                    dailyReminderLastSent: now,
-                                    dailyReminderLastSentDate: todayStr
-                                });
-                                shouldSend = true;
-                            }
-                        });
+                        if (due) {
+                            let shouldSend = false;
+                            await db.runTransaction(async (t) => {
+                                const userRef = db.collection('users').doc(userId);
+                                const userDocForTx = await t.get(userRef);
+                                if (!userDocForTx.exists) return;
 
-                        if (shouldSend) {
-                            console.log(`[Scheduler] Sending Daily Summary for user ${userId}`);
-                            const txSnap = await userDoc.ref.collection('transactionDetails').get();
-                            const monthStr = todayStr.substring(0, 7);
-
-                            let totalSpentToday = 0;
-                            let totalSpentMonth = 0;
-                            const todayCategoryTotals = {};
-
-                            txSnap.docs.forEach(d => {
-                                const data = d.data();
-                                if (data.type === 'expense') {
-                                    if (data.date === todayStr) {
-                                        totalSpentToday += data.amount || 0;
-                                    }
-                                    if (data.date && data.date.startsWith(monthStr)) {
-                                        totalSpentMonth += data.amount || 0;
-                                    }
+                                const uData = userDocForTx.data();
+                                if (uData.dailyReminderLastSentDate !== todayStr) {
+                                    t.update(userRef, {
+                                        dailyReminderLastSent: now,
+                                        dailyReminderLastSentDate: todayStr
+                                    });
+                                    shouldSend = true;
                                 }
                             });
 
-                            let budgetLimit = 0;
-                            let income = 0;
-                            let incomeEnabled = true;
-                            let budgetEnabled = true;
-                            const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('settings').get();
-                            if (profileSettingsSnap.exists) {
-                                const pData = profileSettingsSnap.data();
-                                budgetLimit = pData.budgetLimit || 0;
-                                income = pData.income || 0;
-                                incomeEnabled = pData.incomeEnabled !== false;
-                                budgetEnabled = typeof pData.budgetEnabled === 'boolean' ? pData.budgetEnabled : true;
-                            }
+                            if (shouldSend) {
+                                console.log(`[Scheduler] Sending Daily Summary for user ${userId}`);
+                                const txSnap = await userDoc.ref.collection('transactionDetails').doc('history').collection('userTransactions').get();
+                                const monthStr = todayStr.substring(0, 7);
 
-                            // 4-Case Notification Logic
-                            let body = `Today: ₹${totalSpentToday.toLocaleString('en-IN')}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}`;
+                                let totalSpentToday = 0;
+                                let totalSpentMonth = 0;
+
+                                txSnap.docs.forEach(d => {
+                                    const data = d.data();
+                                    if (data.type === 'expense') {
+                                        if (data.date === todayStr) {
+                                            totalSpentToday += data.amount || 0;
+                                        }
+                                        if (data.date && data.date.startsWith(monthStr)) {
+                                            totalSpentMonth += data.amount || 0;
+                                        }
+                                    }
+                                });
+
+                                let budgetLimit = 0;
+                                let income = 0;
+                                let carryOverBalance = 0;
+                                let balanceContributedToSavings = 0;
+
+                                const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
+                                if (profileSettingsSnap.exists) {
+                                    const pData = profileSettingsSnap.data();
+                                    budgetLimit = pData.budgetLimit || 0;
+                                    income = pData.income || 0;
+                                    carryOverBalance = pData.carryOverBalance || 0;
+                                    balanceContributedToSavings = pData.balanceContributedToSavings || 0;
+                                }
+
+                                const availableBalance = Number(income || 0) - Number(budgetLimit || 0) - Number(balanceContributedToSavings || 0) + Number(carryOverBalance || 0);
+                                const remainingBudget = Number(budgetLimit || 0) - Number(totalSpentMonth || 0);
+
+                                const body = `Today: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
+                                             `Month: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
+                                             `Remaining: ₹${remainingBudget.toLocaleString('en-IN')}\n` +
+                                             `Available Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
+
+                                const payload = JSON.stringify({
+                                    title: 'BudgetWise Daily Summary',
+                                    body: body,
+                                    tag: `daily-summary-${todayStr}`,
+                                    icon: '/logo.svg',
+                                    badge: '/logo.svg',
+                                    data: { url: '/dashboard' },
+                                    timestamp: Date.now()
+                                });
+
+                                const options = {
+                                    TTL: 86400,
+                                    urgency: 'normal'
+                                };
+
+                                const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
+                                const sendPromises = subsSnap.docs.map(d => 
+                                    webpush.sendNotification(d.data(), payload, options).catch(err => {
+                                        if (err.statusCode === 410 || err.statusCode === 404) return d.ref.delete();
+                                    })
+                                );
+                                await Promise.all(sendPromises);
+                                sentCount++;
+                                console.log(`[Scheduler] Successfully sent daily summary to ${userId}`);
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`[Scheduler] Daily summary error for user ${userId}:`, err);
+                    }
+                }
+
+                // --- COMPONENT REMINDERS LOGIC ---
+                const remindersRef = userDoc.ref.collection('transactionDetails').doc('reminders').collection('userReminders');
+                const remindersSnap = await remindersRef.where('enabled', '==', true).where('completed', '==', false).get();
+
+                for (const remDoc of remindersSnap.docs) {
+                    const reminder = remDoc.data();
+                    
+                    let nextTimeTS = reminder.nextNotificationTime;
+                    
+                    // If nextNotificationTime is missing or we are forcing, initialize it correctly using timezone
+                    if (!nextTimeTS && reminder.time) {
+                        try {
+                            console.log(`[Scheduler] Initializing nextNotificationTime for reminder ${remDoc.id} in ${userTimezone}`);
                             
-                            if (budgetEnabled && budgetLimit > 0) {
-                                const remaining = budgetLimit - totalSpentMonth;
-                                body += `\nRemaining: ₹${remaining.toLocaleString('en-IN')}`;
-                            }
+                            // Calculate local date/time for the reminder
+                            const reminderDateString = reminder.date || new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone }).format(nowJS);
+                            const combinedDateTime = `${reminderDateString}T${reminder.time}:00`;
+                            
+                            // We need to parse this local time in the user's timezone to get a proper UTC Date object
+                            // Simple way: Create a string with the timezone offset or use Intl
+                            const localDate = new Date(new Date(combinedDateTime).toLocaleString('en-US', { timeZone: userTimezone }));
+                            const diff = new Date(combinedDateTime).getTime() - localDate.getTime();
+                            const utcDate = new Date(new Date(combinedDateTime).getTime() + diff);
 
-                            if (incomeEnabled && income > 0) {
-                                const availableBalance = income - totalSpentMonth;
-                                body += `\nAvailable Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
-                            }
+                            nextTimeTS = admin.firestore.Timestamp.fromDate(utcDate);
+                            await remDoc.ref.update({ nextNotificationTime: nextTimeTS });
+                        } catch (initErr) {
+                            console.error(`[Scheduler] Failed to initialize reminder time for ${remDoc.id}:`, initErr);
+                            continue;
+                        }
+                    }
 
+                    if (nextTimeTS && nextTimeTS.toMillis() <= now.toMillis()) {
+                        let shouldSendReminder = false;
+                        await db.runTransaction(async (t) => {
+                            const remSnap = await t.get(remDoc.ref);
+                            const rData = remSnap.data();
+                            
+                            if (rData.enabled && !rData.completed && rData.nextNotificationTime.toMillis() === nextTimeTS.toMillis()) {
+                                let updates = { lastSent: now };
+                                if (rData.recurrence === 'one-time') {
+                                    updates.completed = true;
+                                } else {
+                                    const nextOccurrence = calculateNextTime(rData.nextNotificationTime.toDate(), rData.recurrence || 'daily');
+                                    updates.nextNotificationTime = admin.firestore.Timestamp.fromDate(nextOccurrence);
+                                }
+                                t.update(remDoc.ref, updates);
+                                shouldSendReminder = true;
+                            }
+                        });
+
+                        if (shouldSendReminder) {
+                            console.log(`[Scheduler] Sending Reminder for user ${userId}: ${reminder.notes}`);
                             const payload = JSON.stringify({
-                                title: 'BudgetWise Daily Summary',
-                                body: body,
-                                tag: `daily-summary-${todayStr}`,
+                                title: 'BudgetWise Reminder',
+                                body: reminder.notes || 'Reminder!',
+                                tag: `reminder-${remDoc.id}`,
                                 icon: '/logo.svg',
-                                badge: '/logo.svg'
+                                badge: '/logo.svg',
+                                data: { url: '/settings' },
+                                timestamp: Date.now()
                             });
+
+                            const options = { TTL: 3600, urgency: 'high' };
 
                             const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
                             const sendPromises = subsSnap.docs.map(d => 
-                                webpush.sendNotification(d.data(), payload).catch(err => {
+                                webpush.sendNotification(d.data(), payload, options).catch(err => {
                                     if (err.statusCode === 410 || err.statusCode === 404) return d.ref.delete();
                                 })
                             );
                             await Promise.all(sendPromises);
                             sentCount++;
-                            console.log(`[Scheduler] Successfully sent daily summary to ${userId}`);
+                            console.log(`[Scheduler] Successfully sent reminder "${reminder.notes}" to ${userId}`);
                         }
                     }
-                } catch (err) {
-                    console.error(`[Scheduler] Daily summary error for user ${userId}:`, err);
                 }
-            }
-
-            // --- COMPONENT REMINDERS LOGIC ---
-            const remindersRef = userDoc.ref.collection('transactionDetails').doc('reminders').collection('userReminders');
-            const remindersSnap = await remindersRef.where('enabled', '==', true).where('completed', '==', false).get();
-
-            for (const remDoc of remindersSnap.docs) {
-                const reminder = remDoc.data();
-                
-                // If nextNotificationTime is missing but we have time/recurrence, initialize it
-                let nextTimeTS = reminder.nextNotificationTime;
-                if (!nextTimeTS && reminder.time) {
-                    console.log(`[Scheduler] Initializing missing nextNotificationTime for reminder ${remDoc.id}`);
-                    const [h, m] = reminder.time.split(':').map(Number);
-                    const initDate = new Date(nowJS);
-                    initDate.setHours(h, m, 0, 0);
-                    nextTimeTS = admin.firestore.Timestamp.fromDate(initDate);
-                    // Update it in Firestore so we don't keep re-initializing
-                    await remDoc.ref.update({ nextNotificationTime: nextTimeTS });
-                }
-
-                
-                console.log(`[Scheduler] Checking reminder ${remDoc.id} for user ${userId}. Next: ${nextTimeTS ? nextTimeTS.toDate().toISOString() : 'NULL'}, Now: ${nowJS.toISOString()}`);
-
-                if (nextTimeTS && nextTimeTS.toMillis() <= now.toMillis()) {
-                    let shouldSendReminder = false;
-                    await db.runTransaction(async (t) => {
-                        const remSnap = await t.get(remDoc.ref);
-                        const rData = remSnap.data();
-                        
-                        if (rData.enabled && !rData.completed && rData.nextNotificationTime.toMillis() === nextTimeTS.toMillis()) {
-                            let updates = { lastSent: now };
-                            if (rData.recurrence === 'one-time') {
-                                updates.completed = true;
-                            } else {
-                                const nextOccurrence = calculateNextTime(rData.nextNotificationTime.toDate(), rData.recurrence || 'daily');
-                                updates.nextNotificationTime = admin.firestore.Timestamp.fromDate(nextOccurrence);
-                            }
-                            t.update(remDoc.ref, updates);
-                            shouldSendReminder = true;
-                        }
-                    });
-
-                    if (shouldSendReminder) {
-                        console.log(`[Scheduler] Sending Reminder for user ${userId}: ${reminder.notes}`);
-                        const payload = JSON.stringify({
-                            title: 'BudgetWise Reminder',
-                            body: reminder.notes || 'Reminder!',
-                            tag: `reminder-${remDoc.id}`,
-                            icon: '/logo.svg',
-                            badge: '/logo.svg'
-                        });
-
-                        const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
-                        const sendPromises = subsSnap.docs.map(d => 
-                            webpush.sendNotification(d.data(), payload).catch(err => {
-                                if (err.statusCode === 410 || err.statusCode === 404) return d.ref.delete();
-                            })
-                        );
-                        await Promise.all(sendPromises);
-                        sentCount++;
-                        console.log(`[Scheduler] Successfully sent reminder "${reminder.notes}" to ${userId}`);
-                    }
-                }
+            } catch (userErr) {
+                console.error(`[Scheduler] Error processing user ${userDoc.id}:`, userErr);
+                // Continue to next user
             }
         }
         return { processedCount, sentCount };

@@ -18,7 +18,7 @@ clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    console.log('[SW v1.5.0] Push event received');
+    console.log('[SW v1.6.0] Push event received');
 
     let data = {};
     if (event.data) {
@@ -39,11 +39,13 @@ self.addEventListener('push', (event) => {
         requireInteraction: true,
         renotify: true,
         vibrate: [200, 100, 200],
-        actions: data.actions || []
+        actions: data.actions || [],
+        // Vital for mobile reliability when app is closed
+        timestamp: Date.now()
     };
 
-    // Broadcast to open tabs
-    const broadcastPush = self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // 1. Broadcast to open tabs (foreground)
+    const broadcastPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((windowClients) => {
             windowClients.forEach((client) => {
                 client.postMessage({
@@ -54,11 +56,17 @@ self.addEventListener('push', (event) => {
             });
         });
 
+    // 2. Show system notification (background)
+    const notificationPromise = self.registration.showNotification(title, options);
+
+    // Ensure service worker stays alive until both actions complete
     event.waitUntil(
         Promise.all([
-            broadcastPush,
-            self.registration.showNotification(title, options)
-        ])
+            broadcastPromise,
+            notificationPromise
+        ]).catch(err => {
+            console.error('[SW] Notification error:', err);
+        })
     );
 });
 

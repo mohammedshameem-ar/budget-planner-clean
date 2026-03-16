@@ -82,21 +82,22 @@ app.post('/api/test-notification', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     try {
+        const nowJS = new Date();
         const userRef = db.collection('users').doc(userId);
         const subsSnap = await userRef.collection('pushSubscriptions').get();
 
         if (subsSnap.empty) return res.status(404).json({ error: 'No subscriptions found' });
 
         // Build the same rich payload as the scheduler
-        const nowJS = new Date();
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const userSnap = await userRef.get();
+        const uData = userSnap.data() || {};
+        const timezone = uData.timezone || 'UTC';
         const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
         const monthStr = todayStr.substring(0, 7);
 
-        const txSnap = await userRef.collection('transactions').get();
+        const txSnap = await userRef.collection('transactionDetails').doc('history').collection('userTransactions').get();
         let totalSpentToday = 0;
         let totalSpentMonth = 0;
-        const todayCategoryTotals = {};
 
         txSnap.docs.forEach(d => {
             const data = d.data();
@@ -107,39 +108,51 @@ app.post('/api/test-notification', async (req, res) => {
         });
 
         let budgetLimit = 0, income = 0, incomeEnabled = true, budgetEnabled = true;
-        const profileSnap = await userRef.collection('profile').doc('settings').get();
-        if (profileSnap.exists) {
-            const pData = profileSnap.data();
-            budgetLimit = pData.budgetLimit || 0;
-            income = pData.income || 0;
-            incomeEnabled = pData.incomeEnabled !== false;
-            budgetEnabled = typeof pData.budgetEnabled === 'boolean' ? pData.budgetEnabled : true;
+        let carryOverBalance = 0, balanceContributedToSavings = 0;
+
+        // Fetch settings from standardized subcollection: transactionDetails/config/userSettings/settings
+        const settingsDoc = await userRef.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
+        if (settingsDoc.exists) {
+            const sData = settingsDoc.data();
+            budgetLimit = sData.budgetLimit || 0;
+            income = sData.income || 0;
+            incomeEnabled = sData.incomeEnabled !== false;
+            budgetEnabled = sData.budgetEnabled !== false;
+            carryOverBalance = sData.carryOverBalance || 0;
+            balanceContributedToSavings = sData.balanceContributedToSavings || 0;
         }
 
-        let remaining = 'None';
-        if (budgetEnabled && budgetLimit > 0) {
-            remaining = `₹${(budgetLimit - totalSpentMonth).toLocaleString('en-IN')}`;
-        }
+        const availableBalance = Number(income || 0) - Number(budgetLimit || 0) - Number(balanceContributedToSavings || 0) + Number(carryOverBalance || 0);
+        const remainingBudget = Number(budgetLimit || 0) - Number(totalSpentMonth || 0);
 
-        let availableBalanceStr = '';
-        if (incomeEnabled && budgetEnabled && income > 0) {
-            availableBalanceStr = `\nAvailable Balance: ₹${(income - totalSpentMonth).toLocaleString('en-IN')}`;
-        }
+        // Simple Notification Logic (Reverted from 4-case)
+        const body = `Today: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
+                     `Month: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
+                     `Remaining: ₹${remainingBudget.toLocaleString('en-IN')}\n` +
+                     `Available Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
 
         const payload = JSON.stringify({
             title: 'BudgetWise Daily Summary',
-            body: `Today: ₹${totalSpentToday.toLocaleString('en-IN')}\nMonth: ₹${totalSpentMonth.toLocaleString('en-IN')}\nRemaining: ${remaining}${availableBalanceStr}`,
+            body: body,
+            tag: `test-${todayStr}`,
             icon: '/logo.svg',
             badge: '/logo.svg',
-            data: { url: '/dashboard' }
+            data: { url: '/dashboard' },
+            timestamp: Date.now()
         });
+
+        // Advanced options for better delivery
+        const options = {
+            TTL: 3600, // 1 hour
+            urgency: 'high'
+        };
 
         const results = [];
         let successCount = 0, failureCount = 0;
         const endpoints = [];
         for (const doc of subsSnap.docs) {
             try {
-                await webpush.sendNotification(doc.data(), payload);
+                await webpush.sendNotification(doc.data(), payload, options);
                 results.push({ success: true, endpoint: doc.data().endpoint });
                 endpoints.push(doc.data().endpoint);
                 successCount++;

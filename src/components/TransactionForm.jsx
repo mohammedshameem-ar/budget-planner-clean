@@ -12,7 +12,7 @@ const TransactionForm = ({ onClose }) => {
         amount: '',
         type: 'expense',
         category: 'food',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA'),
         note: ''
     });
 

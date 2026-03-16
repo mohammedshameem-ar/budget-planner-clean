@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import LoadingScreen from '../components/LoadingScreen';
 import { useAuth } from './AuthContext';
 import {
     collection,
@@ -30,8 +31,10 @@ export const BudgetProvider = ({ children }) => {
     const [savings, setSavings] = useState(0);
     const [balanceContributedToSavings, setBalanceContributedToSavings] = useState(0);
     const [carryOverBalance, setCarryOverBalance] = useState(0);
+    const [avatar, setAvatar] = useState('https://api.dicebear.com/9.x/personas/svg?seed=Adrian&hair=buzzcut,fade,shortCombover,shortComboverChops,cap,bald,balding,sideShave,mohawk,beanie,curlyHighTop&facialHairProbability=40&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&skinColor=brown,copper,tan,wheat,darkBrown,antiqueWhite');
     const [plans, setPlans] = useState([]);
     const [reminders, setReminders] = useState([]);
+    const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Load user profile (income and budgetLimit) from Firestore
@@ -45,12 +48,48 @@ export const BudgetProvider = ({ children }) => {
             return;
         }
 
-        const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+        // Standardized paths using dedicated subcollections
+        const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
+        const legacyProfileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+        const userRef = doc(db, 'users', user.id);
 
         const unsubscribe = onSnapshot(profileRef, async (profileSnap) => {
             try {
-                if (profileSnap.exists()) {
-                    const data = profileSnap.data();
+                let data = profileSnap.data();
+
+                // Migration Strategy:
+                // 1. Check legacy subcollection (users/{uid}/transactionDetails/settings)
+                // 2. Check root document (users/{uid})
+                if (!profileSnap.exists()) {
+                    const legacySnap = await getDoc(legacyProfileRef);
+                    if (legacySnap.exists()) {
+                        console.log('[BudgetContext] Migrating legacy user-level settings to standardized config subcollection');
+                        data = legacySnap.data();
+                        await setDoc(profileRef, { ...data, updatedAt: Timestamp.now() });
+                    } else {
+                        const userSnap = await getDoc(userRef);
+                        if (userSnap.exists()) {
+                            const rootData = userSnap.data();
+                            if (rootData.income !== undefined || rootData.budgetLimit !== undefined) {
+                                console.log('[BudgetContext] Migrating root document settings to standardized config subcollection');
+                                data = {
+                                    budgetLimit: rootData.budgetLimit || 0,
+                                    income: rootData.income || 0,
+                                    savings: rootData.savings || 0,
+                                    balanceContributedToSavings: rootData.balanceContributedToSavings || 0,
+                                    carryOverBalance: rootData.carryOverBalance || 0,
+                                    lastActiveMonth: rootData.lastActiveMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+                                    incomeEnabled: rootData.incomeEnabled !== false,
+                                    budgetEnabled: rootData.budgetEnabled !== false,
+                                    updatedAt: Timestamp.now()
+                                };
+                                await setDoc(profileRef, data);
+                            }
+                        }
+                    }
+                }
+
+                if (data) {
                     let currentIncome = data.income || 0;
                     let currentBudgetLimit = data.budgetLimit || 0;
                     let currentCarryOverBalance = data.carryOverBalance || 0;
@@ -62,8 +101,6 @@ export const BudgetProvider = ({ children }) => {
 
                     if (lastActiveMonth !== currentMonthStr) {
                         // Month has changed, perform rollover
-
-                        // 1. Snapshot the previous month's final state
                         const statsRef = doc(db, 'users', user.id, 'transactionDetails', 'monthlyStats', lastActiveMonth);
                         await setDoc(statsRef, {
                             income: currentIncome,
@@ -74,21 +111,16 @@ export const BudgetProvider = ({ children }) => {
                             savedAt: Timestamp.now()
                         });
 
-                        // 2. Calculate what's left over from last month (only if income is enabled)
                         if (data.incomeEnabled !== false) {
-                            // The unspent amount from last month = Income - Budget Limit - What they manually contributed from balance to savings
                             const leftover = currentIncome - currentBudgetLimit - currentBalanceContributedToSavings;
                             currentCarryOverBalance += leftover;
-
                             if (currentCarryOverBalance < 0) currentCarryOverBalance = 0;
                         }
 
-                        // 3. Reset stats for the new month
                         currentIncome = 0;
                         currentBudgetLimit = 0;
                         currentBalanceContributedToSavings = 0;
 
-                        // 4. Update the profile with new month data
                         await setDoc(profileRef, {
                             ...data,
                             income: currentIncome,
@@ -105,13 +137,13 @@ export const BudgetProvider = ({ children }) => {
                     setCarryOverBalance(currentCarryOverBalance);
                     setSavings(data.savings || 0);
                     setBalanceContributedToSavings(currentBalanceContributedToSavings);
-                    setIncomeEnabled(data.incomeEnabled !== false); // default true
-                    setBudgetEnabled(data.budgetEnabled !== false); // default true
+                    setIncomeEnabled(data.incomeEnabled !== false);
+                    setBudgetEnabled(data.budgetEnabled !== false);
+                    setAvatar(data.avatar || 'default');
                 } else {
+                    // Initialize if completely new
                     const now = new Date();
                     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-                    // Initialize profile for new user
                     await setDoc(profileRef, {
                         budgetLimit: 0,
                         income: 0,
@@ -119,8 +151,8 @@ export const BudgetProvider = ({ children }) => {
                         balanceContributedToSavings: 0,
                         carryOverBalance: 0,
                         lastActiveMonth: currentMonthStr,
-                        dailySummaryEnabled: false,
-                        dailySummaryTime: '09:00',
+                        incomeEnabled: true,
+                        budgetEnabled: true,
                         createdAt: Timestamp.now()
                     });
                 }
@@ -182,16 +214,15 @@ export const BudgetProvider = ({ children }) => {
             return;
         }
 
-        const transactionsRef = collection(db, 'users', user.id, 'transactionDetails');
+        const transactionsRef = collection(db, 'users', user.id, 'transactionDetails', 'history', 'userTransactions');
         const q = query(transactionsRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const transactionsList = snapshot.docs
-                .filter(doc => !['settings', 'summary'].includes(doc.id)) // Filter out settings and summary
                 .map(doc => ({
                     id: doc.id,
                     ...doc.data(),
-                    // Convert Firestore Timestamp to ISO string
+                    // Convert Firestore Timestamp to ISO string if needed
                     date: doc.data().date?.toDate?.()?.toISOString().split('T')[0] || doc.data().date
                 }));
             setTransactions(transactionsList);
@@ -211,13 +242,14 @@ export const BudgetProvider = ({ children }) => {
         const syncSummary = async () => {
             try {
                 const summaryData = getSummary();
-                const summaryRef = doc(db, 'users', user.id, 'transactionDetails', 'summary');
+                const summaryRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'summary');
                 await setDoc(summaryRef, {
                     totalIncome: summaryData.totalIncome,
                     availableBalance: summaryData.availableBalance,
                     totalExpenses: summaryData.totalExpenses,
                     budgetLimit: summaryData.budgetLimit,
                     remainingBudget: summaryData.remainingBudget,
+                    avatar: avatar,
                     updatedAt: Timestamp.now()
                 }, { merge: true });
             } catch (error) {
@@ -228,27 +260,36 @@ export const BudgetProvider = ({ children }) => {
         // Small timeout to debounce frequent updates (e.g., during bulk operations)
         const timeoutId = setTimeout(syncSummary, 1000);
         return () => clearTimeout(timeoutId);
-    }, [user, transactions, income, budgetLimit, savings, balanceContributedToSavings, carryOverBalance, incomeEnabled, budgetEnabled, loading]);
+    }, [user, transactions, income, budgetLimit, savings, balanceContributedToSavings, carryOverBalance, incomeEnabled, budgetEnabled, avatar, loading]);
 
     const addTransaction = async (transaction) => {
         if (!user) return;
 
         try {
+            console.log('[BudgetContext] Adding transaction:', transaction);
             const transactionId = uuidv4();
-            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', transactionId);
+            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', 'history', 'userTransactions', transactionId);
 
             // If category is 'savings', add to savings total
             if (transaction.category === 'savings') {
                 await addToSavings(transaction.amount);
             }
 
-            await setDoc(transactionRef, {
+            // Get local date as YYYY-MM-DD
+            const localDate = new Date().toLocaleDateString('en-CA');
+
+            const finalData = {
                 ...transaction,
-                date: transaction.date || new Date().toISOString().split('T')[0],
+                amount: Number(transaction.amount) || 0,
+                date: transaction.date || localDate,
                 createdAt: Timestamp.now()
-            });
+            };
+
+            await setDoc(transactionRef, finalData);
+            console.log('[BudgetContext] Transaction added successfully with ID:', transactionId);
         } catch (error) {
-            console.error('Error adding transaction:', error);
+            console.error('[BudgetContext] CRITICAL ERROR adding transaction:', error);
+            alert('Failed to save transaction. Please check your internet connection and try again.');
             throw error;
         }
     };
@@ -257,7 +298,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', id);
+            const transactionRef = doc(db, 'users', user.id, 'transactionDetails', 'history', 'userTransactions', id);
             await deleteDoc(transactionRef);
         } catch (error) {
             console.error('Error deleting transaction:', error);
@@ -268,7 +309,7 @@ export const BudgetProvider = ({ children }) => {
     const clearTransactions = async () => {
         if (!user) return;
         try {
-            const transactionsRef = collection(db, 'users', user.id, 'transactionDetails');
+            const transactionsRef = collection(db, 'users', user.id, 'transactionDetails', 'history', 'userTransactions');
             const snapshot = await getDocs(transactionsRef);
             const deletePromises = snapshot.docs
                 .filter(doc => !['settings', 'summary'].includes(doc.id))
@@ -375,7 +416,7 @@ export const BudgetProvider = ({ children }) => {
     const updateIncomeEnabled = async (value) => {
         if (!user) return;
         try {
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 incomeEnabled: value,
                 updatedAt: Timestamp.now()
@@ -390,7 +431,7 @@ export const BudgetProvider = ({ children }) => {
     const updateBudgetEnabled = async (value) => {
         if (!user) return;
         try {
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 budgetEnabled: value,
                 updatedAt: Timestamp.now()
@@ -406,7 +447,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 budgetLimit: parseFloat(amount),
                 income: income,
@@ -428,7 +469,7 @@ export const BudgetProvider = ({ children }) => {
             // Reset transactions as per user request
             await clearTransactions();
 
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 income: parseFloat(amount),
                 budgetLimit: budgetLimit,
@@ -447,7 +488,7 @@ export const BudgetProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 income: income,
                 budgetLimit: budgetLimit,
@@ -483,7 +524,7 @@ export const BudgetProvider = ({ children }) => {
         }
 
         try {
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             const newContributed = balanceContributedToSavings + val;
             const newSavings = savings + val;
 
@@ -510,7 +551,7 @@ export const BudgetProvider = ({ children }) => {
             // Archive the current setup and transactions before deletion
             if (transactions.length > 0) {
                 const archiveId = uuidv4();
-                const archiveRef = doc(db, 'users', user.id, 'transactionDetails', 'archives', archiveId);
+                const archiveRef = doc(db, 'users', user.id, 'transactionDetails', 'archives', 'history', archiveId);
 
                 await setDoc(archiveRef, {
                     month: currentMonthStr,
@@ -527,7 +568,7 @@ export const BudgetProvider = ({ children }) => {
             await clearTransactions();
 
             // Reset profile settings in Firestore
-            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'settings');
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
             await setDoc(profileRef, {
                 budgetLimit: 0,
                 income: 0,
@@ -549,6 +590,20 @@ export const BudgetProvider = ({ children }) => {
             throw error;
         }
     };
+
+    const updateAvatar = async (newAvatar) => {
+        if (!user) return;
+        setAvatar(newAvatar);
+        try {
+            const profileRef = doc(db, 'users', user.id, 'transactionDetails', 'config', 'userSettings', 'settings');
+            await setDoc(profileRef, { avatar: newAvatar }, { merge: true });
+        } catch (error) {
+            console.error('Error updating avatar:', error);
+        }
+    };
+
+    const toggleAvatarPicker = (isOpen) => setIsAvatarPickerOpen(isOpen !== undefined ? isOpen : !isAvatarPickerOpen);
+
 
     const getSummary = () => {
         const now = new Date();
@@ -581,7 +636,7 @@ export const BudgetProvider = ({ children }) => {
     };
 
     if (loading) {
-        return <div className="flex-center" style={{ height: '100vh' }}>Loading your data...</div>;
+        return <LoadingScreen message="LOADING YOUR FINANCIAL PORTFOLIO..." subtext="Syncing with our secure vault" />;
     }
 
     return (
@@ -616,6 +671,10 @@ export const BudgetProvider = ({ children }) => {
             contributeFromBalance,
             balanceContributedToSavings,
             carryOverBalance,
+            avatar,
+            updateAvatar,
+            isAvatarPickerOpen,
+            toggleAvatarPicker,
             db
         }}>
             {children}

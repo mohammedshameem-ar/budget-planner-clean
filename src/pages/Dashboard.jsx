@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
 import SummaryCard from '../components/SummaryCard';
@@ -6,10 +7,10 @@ import TransactionList from '../components/TransactionList';
 import ExpenseChart from '../components/ExpenseChart';
 import TransactionForm from '../components/TransactionForm';
 import OnlineServicesForm from '../components/OnlineServicesForm';
-import streakIcon from '../assets/streak.png';
 import { Wallet, TrendingDown, PiggyBank, Plus, Minus, CheckCircle, Download, LayoutDashboard, AlertCircle, Globe } from 'lucide-react';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const {
         budgetLimit,
@@ -19,126 +20,18 @@ const Dashboard = () => {
         plans,
         addToSavings,
         contributeFromBalance,
+        avatar,
+        toggleAvatarPicker
     } = useBudget();
     const summary = getSummary();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isOnlineServicesModalOpen, setIsOnlineServicesModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [streakActive, setStreakActive] = useState(false);
-    const [streakAnimating, setStreakAnimating] = useState(false);
-    const streakRef = useRef(null);
 
-    // Inject streak animation keyframes once
-    useEffect(() => {
-        if (document.getElementById('streak-anim-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'streak-anim-styles';
-        style.textContent = `
-            @keyframes boltShoot {
-                0% { transform: translate(0, 0) scaleY(1); opacity: 1; }
-                60% { opacity: 1; }
-                100% { transform: translate(var(--tx), var(--ty)) scaleY(0.3); opacity: 0; }
-            }
-            @keyframes thunderFlash {
-                0% { box-shadow: 0 0 0 rgba(255,255,255,0); background: #ffffff; }
-                10% { box-shadow: 0 0 40px rgba(255,255,255,0.9), 0 0 80px rgba(250,204,21,0.5); }
-                25% { box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-                35% { box-shadow: 0 0 35px rgba(250,204,21,0.8), 0 0 60px rgba(245,158,11,0.4); }
-                100% { box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); }
-            }
-            @keyframes streakPop {
-                0% { transform: scale(1); }
-                15% { transform: scale(1.25); }
-                35% { transform: scale(0.92); }
-                100% { transform: scale(1); }
-            }
-            @keyframes screenFlash {
-                0% { opacity: 0.6; }
-                100% { opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-    }, []);
 
-    const handleStreakClick = () => {
-        const willActivate = !streakActive;
-        setStreakActive(willActivate);
-        if (willActivate) {
-            setStreakAnimating(true);
-            const btn = streakRef.current;
-            if (btn) {
-                const rect = btn.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
 
-                // Quick white screen flash
-                const flash = document.createElement('div');
-                flash.style.cssText = `
-                    position: fixed; inset: 0; z-index: 99998;
-                    background: rgba(250, 204, 21, 0.15);
-                    pointer-events: none;
-                    animation: screenFlash 0.3s ease-out forwards;
-                `;
-                document.body.appendChild(flash);
-                setTimeout(() => flash.remove(), 350);
 
-                // Lightning bolt streaks (elongated thin lines)
-                for (let i = 0; i < 8; i++) {
-                    const bolt = document.createElement('div');
-                    const angle = (Math.PI * 2 * i) / 8 + (Math.random() - 0.5) * 0.4;
-                    const dist = 35 + Math.random() * 35;
-                    const tx = Math.cos(angle) * dist;
-                    const ty = Math.sin(angle) * dist;
-                    const length = 12 + Math.random() * 16;
-                    const width = 2 + Math.random() * 1.5;
-                    const rotateDeg = (angle * 180 / Math.PI) + 90;
-                    const colors = ['#fbbf24', '#ffffff', '#fde68a', '#fbbf24', '#fff'];
-                    bolt.style.cssText = `
-                        position: fixed;
-                        left: ${cx - width / 2}px;
-                        top: ${cy - length / 2}px;
-                        width: ${width}px;
-                        height: ${length}px;
-                        background: ${colors[Math.floor(Math.random() * 5)]};
-                        border-radius: ${width}px;
-                        pointer-events: none;
-                        z-index: 99999;
-                        transform-origin: center center;
-                        transform: rotate(${rotateDeg}deg);
-                        --tx: ${tx}px;
-                        --ty: ${ty}px;
-                        animation: boltShoot 0.4s ease-out forwards;
-                        box-shadow: 0 0 6px rgba(250, 204, 21, 0.8), 0 0 12px rgba(255, 255, 255, 0.4);
-                    `;
-                    document.body.appendChild(bolt);
-                    setTimeout(() => bolt.remove(), 500);
-                }
 
-                // Small electric dots at the tips
-                for (let i = 0; i < 6; i++) {
-                    const dot = document.createElement('div');
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = 15 + Math.random() * 25;
-                    const tx = Math.cos(angle) * dist;
-                    const ty = Math.sin(angle) * dist;
-                    const size = 2 + Math.random() * 2;
-                    dot.style.cssText = `
-                        position: fixed; left: ${cx}px; top: ${cy}px;
-                        width: ${size}px; height: ${size}px;
-                        background: #ffffff;
-                        border-radius: 50%;
-                        pointer-events: none; z-index: 99999;
-                        --tx: ${tx}px; --ty: ${ty}px;
-                        animation: boltShoot 0.35s ease-out forwards;
-                        box-shadow: 0 0 4px #fbbf24;
-                    `;
-                    document.body.appendChild(dot);
-                    setTimeout(() => dot.remove(), 450);
-                }
-            }
-            setTimeout(() => setStreakAnimating(false), 500);
-        }
-    };
 
     useEffect(() => {
         const handleOpen = () => setIsModalOpen(true);
@@ -340,37 +233,31 @@ const Dashboard = () => {
                     }}>
                         <Wallet size={24} />
                     </div>
+                    <div style={{ 
+                        width: '42px', height: '42px', borderRadius: '12px', 
+                        overflow: 'hidden', cursor: 'pointer',
+                        border: '2px solid white',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)',
+                        transition: 'transform 0.2s ease'
+                    }}
+                        onClick={() => toggleAvatarPicker(true)}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                        {avatar === 'default' ? (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', color: 'var(--primary)', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                                {(user?.name?.charAt(0) || user?.email?.charAt(0) || '?').toUpperCase()}
+                            </div>
+                        ) : (
+                            <img src={avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                    </div>
                     <div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', marginBottom: '-2px' }}>SpendBook</h1>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Smart expense tracking</p>
                     </div>
-                    <button
-                        ref={streakRef}
-                        onClick={handleStreakClick}
-                        title="Streak"
-                        style={{
-                            background: streakActive ? 'linear-gradient(135deg, #f59e0b, #ea580c)' : '#ffffff',
-                            border: streakActive ? '2px solid transparent' : '2px solid #cbd5e1',
-                            cursor: 'pointer',
-                            padding: '3px',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: streakActive ? '0 4px 14px rgba(245, 158, 11, 0.4)' : '0 2px 6px rgba(0,0,0,0.06)',
-                            animation: streakAnimating ? 'thunderFlash 0.6s ease-out, streakPop 0.5s ease-out' : 'none',
-                            transition: 'background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease'
-                        }}
-                        onMouseEnter={e => { if (!streakAnimating) e.currentTarget.style.transform = 'scale(1.1)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                    >
-                        <img src={streakIcon} alt="Streak" style={{
-                            width: '38px', height: '38px', objectFit: 'contain',
-                            filter: streakActive ? 'brightness(1.1)' : 'grayscale(0.5) opacity(0.6)',
-                            transition: 'filter 0.3s ease'
-                        }} />
-                    </button>
-                </div>
+                    </div>
+
                 <div style={{ display: 'flex', gap: '1rem', position: 'relative', flexWrap: 'wrap' }}>
                     {budgetWarning && (
                         <div style={{

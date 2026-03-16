@@ -74,7 +74,7 @@ const OnlineServicesForm = ({ onClose }) => {
             amount: parseFloat(amount),
             type: 'expense',
             category: selectedService.category,
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toLocaleDateString('en-CA'),
             note: `${selectedService.icon} ${selectedService.name}`,
             logo: selectedService.logo
         });

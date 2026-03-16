@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2, Settings as SettingsIcon, Wallet } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2, Settings as SettingsIcon, Wallet, Sparkles } from 'lucide-react';
 import Modal from '../components/Modal';
 import { collection, doc, getDocs, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const Settings = () => {
     const { user, subscribeUserToPush } = useAuth();
-    const { transactions, budgetLimit, updateBudgetLimit, income, updateIncome, incomeEnabled, updateIncomeEnabled, budgetEnabled, updateBudgetEnabled, clearTransactions, clearAllData, getSummary, reminders, addReminder, deleteReminder } = useBudget();
+    const { avatar, updateAvatar, toggleAvatarPicker, transactions, budgetLimit, updateBudgetLimit, income, updateIncome, incomeEnabled, updateIncomeEnabled, budgetEnabled, updateBudgetEnabled, clearTransactions, clearAllData, getSummary, reminders, addReminder, deleteReminder } = useBudget();
     const [budgetInput, setBudgetInput] = useState(budgetLimit);
     const [incomeInput, setIncomeInput] = useState(income);
     const [error, setError] = useState('');
@@ -384,20 +384,31 @@ const Settings = () => {
                         <p style={{ color: 'var(--text-muted)', margin: '0.2rem 0 0 0', fontSize: '0.95rem' }}>Personalize your financial experience</p>
                     </div>
                 </div>
-                {deferredPrompt && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                        onClick={handleInstallClick}
-                        className="btn btn-primary"
+                        onClick={() => toggleAvatarPicker(true)}
+                        className="btn btn-outline"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}
                     >
-                        <Download size={18} />
-                        Install App
+                        <Sparkles size={18} color="var(--primary)" />
+                        Change Avatar
                     </button>
-                )}
+                    {deferredPrompt && (
+                        <button
+                            onClick={handleInstallClick}
+                            className="btn btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px' }}
+                        >
+                            <Download size={18} />
+                            Install App
+                        </button>
+                    )}
+                </div>
             </header>
 
             {/* Settings Grid Container */}
             <div className="settings-grid">
+                {/* Income Settings Section */}
                 {/* Income Settings Section */}
                 <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>

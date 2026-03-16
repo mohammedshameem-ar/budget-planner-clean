@@ -1,0 +1,335 @@
+/* Game Mode Roadmap Redesign - Reference Match Edition */
+.points-container {
+    padding: 2rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: #fff;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+.points-header {
+    background: linear-gradient(135deg, #2d3e50, #1a252f);
+    border: 3px solid #ffd700;
+    border-radius: 30px;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 2rem;
+    margin-bottom: 4rem;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    position: relative;
+    z-index: 100;
+}
+
+.rank-badge-main {
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at top, var(--rank-color), #000);
+    border-radius: 50%;
+    border: 5px solid #ffd700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 40px var(--rank-color);
+    position: relative;
+}
+
+.status-info h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #ffd700;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.8);
+    margin-bottom: 0px;
+}
+
+.points-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #fff;
+}
+
+/* Roadmap Map Styling */
+.roadmap-container {
+    background: #eab308; /* Desert/Sand base like ref */
+    background-image: radial-gradient(#facc15 1px, transparent 1px);
+    background-size: 20px 20px;
+    border-radius: 50px;
+    padding: 8rem 2rem;
+    position: relative;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.2);
+    overflow: visible;
+    border: 12px solid #b45309;
+}
+
+.roadmap-winding-path {
+    display: flex;
+    flex-direction: column;
+    gap: 15rem; /* Large vertical gap for curve */
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.map-node {
+    position: relative;
+    width: 100%;
+    display: flex;
+}
+
+.pos-left { justify-content: flex-start; padding-left: 10%; }
+.pos-right { justify-content: flex-end; padding-right: 10%; }
+
+.node-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Diamond Node - Ref Match */
+.diamond-node {
+    width: 80px;
+    height: 80px;
+    background: #94a3b8; /* Gray for locked */
+    border: 4px solid #475569;
+    border-radius: 12px;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 8px 0 #334155,
+        0 15px 30px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+}
+
+.map-node.unlocked .diamond-node {
+    background: #0ea5e9; /* Blue for unlocked like ref */
+    border-color: #fff;
+    box-shadow: 
+        0 8px 0 #0369a1,
+        0 15px 30px rgba(0,0,0,0.3);
+}
+
+.map-node.current .diamond-node {
+    background: #facc15; /* Gold for current */
+    border-color: #fff;
+    transform: rotate(45deg) scale(1.1);
+    box-shadow: 
+        0 10px 0 #a16207,
+        0 0 30px #facc15;
+}
+
+.diamond-content {
+    transform: rotate(-45deg); /* Counter-rotate everything inside */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.diamond-level-badge {
+    position: absolute;
+    bottom: -15px;
+    right: -15px;
+    background: #000;
+    color: #ffd700;
+    font-size: 0.75rem;
+    font-weight: 900;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #ffd700;
+    box-shadow: 0 4px 5px rgba(0,0,0,0.5);
+    z-index: 30;
+}
+
+.rank-emblem {
+    width: 60px;
+    height: 60px;
+    background-size: 300% auto;
+    background-repeat: no-repeat;
+    background-position-y: center;
+    filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4));
+    transform: scale(1.1);
+}
+
+/* Map to original batch assets */
+.emblems-batch-1 { background-image: url('../assets/ranks/batch1.png'); }
+.emblems-batch-2 { background-image: url('../assets/ranks/batch2.png'); }
+.emblems-batch-3 { background-image: url('../assets/ranks/batch3.png'); }
+
+.emblem-idx-0 { background-position-x: 0%; }
+.emblem-idx-1 { background-position-x: 50%; }
+.emblem-idx-2 { background-position-x: 100%; }
+
+.locked-emblem {
+    color: rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* User Avatar Floating */
+.user-avatar-float {
+    position: absolute;
+    top: -110px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.avatar-square {
+    width: 70px;
+    height: 70px;
+    background: #fff;
+    border: 4px solid #facc15;
+    border-radius: 12px;
+    padding: 4px;
+    position: relative;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.avatar-square svg {
+    width: 100%;
+    height: 100%;
+}
+
+.status-heart {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+
+.avatar-pointer {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #facc15;
+    margin-top: -2px;
+}
+
+/* Stars Rating */
+.node-stars {
+    display: flex;
+    gap: 2px;
+    margin-top: 1.5rem;
+    position: relative;
+    z-index: 20;
+}
+
+.star-1 { transform: translateY(4px) rotate(-10deg); }
+.star-2 { transform: translateY(8px); }
+.star-3 { transform: translateY(4px) rotate(10deg); }
+
+/* Path Connector - Ref Match */
+.map-path-connector {
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+    border: 20px solid #d1d5db; /* Stone gray */
+    opacity: 1 !important;
+}
+
+.pos-left .map-path-connector {
+    width: 300px;
+    height: 250px;
+    top: 50px;
+    left: 40px;
+    border-radius: 100px;
+    border-bottom: none;
+    border-left: none;
+    border-top: 25px solid #9ca3af;
+    border-right: 25px solid #9ca3af;
+    mask-image: radial-gradient(circle at center, #000 70%, transparent 100%);
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 10px, transparent 10px, transparent 20px);
+}
+
+.pos-right .map-path-connector {
+    width: 300px;
+    height: 250px;
+    top: 50px;
+    right: 40px;
+    border-radius: 100px;
+    border-bottom: none;
+    border-right: none;
+    border-top: 25px solid #9ca3af;
+    border-left: 25px solid #9ca3af;
+    mask-image: radial-gradient(circle at center, #000 70%, transparent 100%);
+}
+
+.map-path-connector.active {
+    border-color: #60a5fa; /* Blue path for progress */
+}
+
+/* Info Bubble */
+.node-info-bubble {
+    position: absolute;
+    bottom: -80px;
+    background: rgba(0,0,0,0.8);
+    padding: 8px 16px;
+    border-radius: 15px;
+    text-align: center;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.node-wrapper:hover .node-info-bubble {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Decorative Elements */
+.map-decoration {
+    position: absolute;
+    opacity: 0.8;
+}
+
+.tree-1 { top: 5%; left: 5%; color: #15803d; }
+.tree-2 { top: 30%; right: 10%; color: #15803d; }
+.rock-1 { top: 60%; left: 15%; color: #4b5563; }
+.camp { bottom: 10%; right: 20%; color: #b45309; }
+
+@media (max-width: 768px) {
+    .roadmap-winding-path {
+        gap: 12rem;
+    }
+    .pos-left, .pos-right {
+        padding: 0;
+        justify-content: center;
+    }
+    .map-path-connector {
+        display: none;
+    }
+}
+
+@keyframes bounce-subtle {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+}
+
+.animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+}

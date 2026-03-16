@@ -10,12 +10,14 @@ import Settings from './pages/Settings';
 import Planning from './pages/Planning';
 import MainLayout from './layouts/MainLayout';
 import { ThemeProvider } from './context/ThemeContext';
+import AvatarPicker from './components/AvatarPicker';
+import LoadingScreen from './components/LoadingScreen';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="flex-center" style={{ height: '100vh' }}>Loading...</div>;
+  if (loading) return <LoadingScreen message="SECURELY ACCESSING YOUR DATA..." />;
 
   if (!user) {
     return <Navigate to="/login" />;
@@ -88,6 +90,7 @@ const App = () => {
                 }
               />
             </Routes>
+            <AvatarPicker />
           </Router>
         </BudgetProvider>
       </AuthProvider>

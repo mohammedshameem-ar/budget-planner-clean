@@ -50,7 +50,7 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: false  // Disable dev SW so it doesn't override our /public/sw.js
+        enabled: true  // Enable dev SW so we can test it locally
       }
     })
   ],

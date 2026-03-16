@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { onMessage } from 'firebase/messaging';
+import LoadingScreen from '../components/LoadingScreen';
 import { auth, db, messaging, googleProvider } from '../firebase';
 
 const AuthContext = createContext();
@@ -18,6 +19,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
 
   // Register push subscription for a user
   const subscribeUserToPush = async (userId, force = false) => {
@@ -150,7 +152,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     console.log('Initializing Firestore profile...');
-    const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'settings');
+    const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'config', 'userSettings', 'settings');
     await setDoc(profileRef, {
       budgetLimit: 0,
       income: 0,
@@ -195,7 +197,7 @@ export const AuthProvider = ({ children }) => {
       const firebaseUser = result.user;
 
       // Check if profile exists, if not initialize it
-      const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'settings');
+      const profileRef = doc(db, 'users', firebaseUser.uid, 'transactionDetails', 'config', 'userSettings', 'settings');
       const profileSnap = await getDoc(profileRef);
 
       if (!profileSnap.exists()) {
@@ -223,7 +225,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   if (loading) {
-    return <div className="flex-center" style={{ height: '100vh' }}>Loading...</div>;
+    return <LoadingScreen message="PREPARING YOUR PERSONAL BUDGET..." />;
   }
 
   return (

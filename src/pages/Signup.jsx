@@ -15,16 +15,29 @@ const Signup = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!name.trim()) {
+            return setError('Please enter your full name.');
+        }
         if (password !== confirmPassword) {
-            return setError('Passwords do not match');
+            return setError('Passwords do not match.');
+        }
+        if (password.length < 6) {
+            return setError('Password must be at least 6 characters.');
         }
         setLoading(true);
         setError('');
         try {
-            await signUp(email, password);
+            await signUp(email, password, name.trim());
             navigate('/');
         } catch (err) {
-            setError('Failed to create an account.');
+            console.error('Signup error:', err);
+            if (err.code === 'auth/email-already-in-use') {
+                setError('This email is already registered. Try signing in instead.');
+            } else if (err.code === 'auth/invalid-email') {
+                setError('Please enter a valid email address.');
+            } else {
+                setError('Failed to create account. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -74,61 +87,17 @@ const Signup = () => {
 
             <main className="login-wrapper" style={{
                 width: '100%',
-                maxWidth: '1000px',
-                background: 'white',
-                borderRadius: '30px',
+                maxWidth: '500px',
+                background: 'rgba(255, 255, 255, 0.97)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderRadius: '28px',
                 display: 'flex',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 overflow: 'hidden',
                 zIndex: 2,
-                minHeight: '650px'
             }}>
-                {/* Left Side: Illustration & Quote */}
-                <div className="login-illustration-side" style={{
-                    flex: 1,
-                    position: 'relative',
-                    background: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1554224155-1696413565d3?q=80&w=2070&auto=format&fit=crop')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    padding: '40px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    color: 'white',
-                    textAlign: 'center'
-                }}>
-                    <h1 style={{
-                        fontFamily: "'Dancing Script', cursive",
-                        fontSize: '3.5rem',
-                        marginBottom: '10px',
-                        textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                    }}>BudgetWise</h1>
-                    <p style={{
-                        fontSize: '1rem',
-                        maxWidth: '300px',
-                        lineHeight: '1.6',
-                        fontWeight: '500',
-                        opacity: 0.9
-                    }}>
-                        "A budget is telling your money where to go instead of wondering where it went."
-                    </p>
-
-                    {/* Decorative flow for budget logic */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '15%',
-                        right: '10%',
-                        opacity: 0.6
-                    }}>
-                        <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                            <path d="M10 20 Q 50 90 90 60" stroke="white" strokeWidth="2" strokeDasharray="5 5" />
-                            <circle cx="90" cy="60" r="4" fill="white" />
-                        </svg>
-                    </div>
-                </div>
-
-                {/* Right Side: Form */}
+                {/* Form Only */}
                 <div className="login-form-side" style={{
                     flex: 1,
                     padding: '50px 50px 40px',
@@ -137,15 +106,22 @@ const Signup = () => {
                     position: 'relative',
                     backgroundColor: '#fff'
                 }}>
-                    <div style={{ marginBottom: '25px' }}>
-                        <h2 style={{
-                            fontSize: '2.5rem',
-                            fontWeight: '800',
+                    <div style={{ marginBottom: '25px', textAlign: 'center' }}>
+                        <h1 style={{
+                            fontFamily: "'Dancing Script', cursive",
+                            fontSize: '2.4rem',
                             color: '#02a9f4',
-                            margin: 0,
+                            margin: '0 0 6px 0',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.08)'
+                        }}>BudgetWise</h1>
+                        <h2 style={{
+                            fontSize: '1.6rem',
+                            fontWeight: '800',
+                            color: '#1e293b',
+                            margin: '0 0 4px 0',
                             letterSpacing: '-0.5px'
-                        }}>Join Us</h2>
-                        <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '5px' }}>Register Now</p>
+                        }}>Create Account</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '4px' }}>Start managing your finances today</p>
                     </div>
 
                     {error && (

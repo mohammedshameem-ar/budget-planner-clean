@@ -55,7 +55,7 @@ const Modal = ({ title, children, onClose }) => {
                 </div>
 
                 {/* Body - Scrollable */}
-                <div style={{
+                <div className="hide-scrollbar" style={{
                     padding: '1.5rem',
                     overflowY: 'auto',
                     flex: 1
