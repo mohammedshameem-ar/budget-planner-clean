@@ -224,13 +224,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  if (loading) {
-    return <LoadingScreen message="PREPARING YOUR PERSONAL BUDGET..." />;
-  }
-
   return (
     <AuthContext.Provider value={{ user, signUp, signIn, logout, signInWithGoogle, googleSignIn: signInWithGoogle, loading, subscribeUserToPush }}>
-      {children}
+      {loading ? (
+        <LoadingScreen message="PREPARING YOUR PERSONAL BUDGET..." />
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

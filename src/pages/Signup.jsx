@@ -54,13 +54,7 @@ const Signup = () => {
 
     return (
         <div className="auth-container" style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#02a9f4',
-            padding: '20px',
-            position: 'relative',
+            background: 'linear-gradient(135deg, #02a9f4 0%, #01579b 100%)',
             fontFamily: "'Outfit', sans-serif"
         }}>
             {/* Decorative background circles */}

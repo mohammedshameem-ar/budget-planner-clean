@@ -37,14 +37,7 @@ const Login = () => {
 
     return (
         <div className="auth-container" style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             background: 'linear-gradient(135deg, #02a9f4 0%, #01579b 100%)',
-            padding: '20px',
-            position: 'relative',
-            overflow: 'hidden',
             fontFamily: "'Outfit', sans-serif"
         }}>
 

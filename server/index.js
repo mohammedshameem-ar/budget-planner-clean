@@ -12,10 +12,16 @@ const app = express();
 
 // Relaxed CORS for debugging production issues
 app.use(cors({
-    origin: true,
+    origin: [
+        'https://news-9d3d2.web.app',
+        'https://news-9d3d2.firebaseapp.com',
+        'http://localhost:5173',
+        /\.firebaseapp\.com$/,
+        /\.web\.app$/
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }));
 
 // Log all requests
@@ -65,12 +71,14 @@ app.post('/api/subscribe', async (req, res) => {
         };
 
         if (!existing.empty) {
+            console.log(`[Push] Updating existing subscription for user: ${userId}`);
             await existing.docs[0].ref.set(data);
         } else {
+            console.log(`[Push] Adding new subscription for user: ${userId}`);
             data.createdAt = admin.firestore.FieldValue.serverTimestamp();
             await subsRef.add(data);
         }
-        res.status(200).json({ message: 'Subscription saved' });
+        res.status(200).json({ message: 'Subscription saved successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -151,17 +159,24 @@ app.post('/api/test-notification', async (req, res) => {
         let successCount = 0, failureCount = 0;
         const endpoints = [];
         for (const doc of subsSnap.docs) {
+            const sub = doc.data();
             try {
-                await webpush.sendNotification(doc.data(), payload, options);
-                results.push({ success: true, endpoint: doc.data().endpoint });
-                endpoints.push(doc.data().endpoint);
+                console.log(`[Test] Sending to endpoint: ${sub.endpoint.substring(0, 40)}...`);
+                await webpush.sendNotification(sub, payload, options);
+                results.push({ success: true, endpoint: sub.endpoint });
+                endpoints.push(sub.endpoint);
                 successCount++;
             } catch (err) {
-                if (err.statusCode === 410 || err.statusCode === 404) await doc.ref.delete();
-                results.push({ success: false, error: err.message });
+                console.error(`[Test] Failed for endpoint: ${sub.endpoint.substring(0, 40)}... Error: ${err.message}`);
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                    console.log(`[Test] Deleting expired/invalid subscription doc: ${doc.id}`);
+                    await doc.ref.delete();
+                }
+                results.push({ success: false, error: err.message, endpoint: sub.endpoint });
                 failureCount++;
             }
         }
+        console.log(`[Test] Result for user ${userId}: ${successCount} success, ${failureCount} failure`);
         res.json({ results, successCount, failureCount, endpoints });
     } catch (error) {
         res.status(500).json({ error: error.message });

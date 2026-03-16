@@ -11,7 +11,9 @@ if (!admin) console.error('FATAL: Admin missing in scheduler');
 async function runScheduler(force = false) {
     const now = admin.firestore.Timestamp.now();
     const nowJS = now.toDate();
-    console.log(`[Scheduler] ${force ? 'FORCED' : 'Cron'} check at ${nowJS.toISOString()}...`);
+    console.log(`[Scheduler] --- ${force ? 'FORCED' : 'CRON'} START ---`);
+    console.log(`[Scheduler] Server Time (UTC): ${new Date().toISOString()}`);
+    console.log(`[Scheduler] Firestore Time: ${nowJS.toISOString()}`);
 
     try {
         const usersSnap = await db.collection('users').get();
@@ -135,7 +137,7 @@ async function runScheduler(force = false) {
                                 );
                                 await Promise.all(sendPromises);
                                 sentCount++;
-                                console.log(`[Scheduler] Successfully sent daily summary to ${userId}`);
+                                console.log(`[Scheduler] Successfully sent daily summary to user: ${userId} (${subsSnap.size} devices)`);
                             }
                         }
                     } catch (err) {
@@ -216,18 +218,23 @@ async function runScheduler(force = false) {
                             );
                             await Promise.all(sendPromises);
                             sentCount++;
-                            console.log(`[Scheduler] Successfully sent reminder "${reminder.notes}" to ${userId}`);
+                            console.log(`[Scheduler] Successfully sent reminder "${reminder.notes}" to user: ${userId} (${subsSnap.size} devices)`);
                         }
                     }
+                }
+                if (processedCount % 10 === 0) {
+                    console.log(`[Scheduler] Progress: ${processedCount} users processed so far...`);
                 }
             } catch (userErr) {
                 console.error(`[Scheduler] Error processing user ${userDoc.id}:`, userErr);
                 // Continue to next user
             }
         }
+        console.log(`[Scheduler] --- FINISHED ---`);
+        console.log(`[Scheduler] Summary: Processed: ${processedCount}, Notifications Sent: ${sentCount}`);
         return { processedCount, sentCount };
     } catch (error) {
-        console.error('[Scheduler] Critical loop error:', error);
+        console.error('[Scheduler] CRITICAL ERROR in runScheduler:', error);
         throw error;
     }
 }

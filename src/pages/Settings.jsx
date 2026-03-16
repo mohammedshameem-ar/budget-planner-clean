@@ -234,10 +234,16 @@ const Settings = () => {
             console.log('Starting notification test...');
             const { sendTestNotification } = await import('../api/push');
             const result = await sendTestNotification(user.id);
-            if (result.error) {
-                alert(`✅ Test result: Sent to ${result.successCount} device(s). Failed on ${result.failureCount}.\n\nEndpoints: ${result.endpoints?.join(', ') || 'None'}\n\nError: ${result.error}`);
+            
+            const summary = `✅ Test complete!\n\n` +
+                          `• Sent to: ${result.successCount} device(s)\n` +
+                          `• Failed on: ${result.failureCount} device(s)\n\n` +
+                          (result.endpoints?.length > 0 ? `Endpoints:\n${result.endpoints.map(e => '• ' + e.substring(0, 30) + '...').join('\n')}` : 'No active endpoints found.');
+
+            if (result.failureCount > 0) {
+                alert(`${summary}\n\n⚠️ Some devices failed to receive the notification. Check if you have multiple browsers and if they have notifications enabled.`);
             } else {
-                alert(`✅ Test result: Sent to ${result.successCount} device(s). Failed on ${result.failureCount}.\n\nEndpoints: ${result.endpoints?.join(', ') || 'None'}`);
+                alert(summary);
             }
         } catch (e) {
             console.error('Test failed:', e);
@@ -271,7 +277,11 @@ const Settings = () => {
             console.log('Starting manual scheduler run...');
             const { debugRunScheduler } = await import('../api/push');
             const result = await debugRunScheduler();
-            alert(`✅ Scheduler run complete!\n\nProcessed: ${result.details.processedCount} user(s)\nNotifications Sent: ${result.details.sentCount}\n\nCheck your notification center!`);
+            alert(`✅ Manual Scheduler Triggered!\n\n` +
+                  `• Status: ${result.message}\n` +
+                  `• Users Processed: ${result.details.processedCount}\n` +
+                  `• Notifications Sent: ${result.details.sentCount}\n\n` +
+                  `Check your device for the Daily Summary!`);
         } catch (e) {
             console.error('Scheduler trigger failed:', e);
             alert(`❌ Error: ${e.message}`);
