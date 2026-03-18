@@ -50,7 +50,7 @@ async function runScheduler(force = false) {
                         let due = (currentLocalTime === normalizedReminderTime);
                         
                         if (force || currentLocalTime > normalizedReminderTime) {
-                             if (userData.dailyReminderLastSentDate !== todayStr) {
+                             if (force || userData.dailyReminderLastSentDate !== todayStr) {
                                  due = true;
                              }
                         }
@@ -63,7 +63,7 @@ async function runScheduler(force = false) {
                                 if (!userDocForTx.exists) return;
 
                                 const uData = userDocForTx.data();
-                                if (uData.dailyReminderLastSentDate !== todayStr) {
+                                if (force || uData.dailyReminderLastSentDate !== todayStr) {
                                     t.update(userRef, {
                                         dailyReminderLastSent: now,
                                         dailyReminderLastSentDate: todayStr
@@ -92,27 +92,18 @@ async function runScheduler(force = false) {
                                     }
                                 });
 
-                                let budgetLimit = 0;
-                                let income = 0;
-                                let carryOverBalance = 0;
-                                let balanceContributedToSavings = 0;
+                                 let savings = 0;
 
-                                const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
-                                if (profileSettingsSnap.exists) {
-                                    const pData = profileSettingsSnap.data();
-                                    budgetLimit = pData.budgetLimit || 0;
-                                    income = pData.income || 0;
-                                    carryOverBalance = pData.carryOverBalance || 0;
-                                    balanceContributedToSavings = pData.balanceContributedToSavings || 0;
-                                }
+                                 const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
+                                 if (profileSettingsSnap.exists) {
+                                     const pData = profileSettingsSnap.data();
+                                     savings = pData.savings || 0;
+                                 }
 
-                                const availableBalance = Number(income || 0) - Number(budgetLimit || 0) - Number(balanceContributedToSavings || 0) + Number(carryOverBalance || 0);
-                                const remainingBudget = Number(budgetLimit || 0) - Number(totalSpentMonth || 0);
-
-                                const body = `Today: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
-                                             `Month: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
-                                             `Remaining: ₹${remainingBudget.toLocaleString('en-IN')}\n` +
-                                             `Available Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
+                                 // Simplified Notification Body
+                                 const body = `Today spent: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
+                                              `Monthly spent: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
+                                              `Savings: ₹${savings.toLocaleString('en-IN')}`;
 
                                 const payload = JSON.stringify({
                                     title: 'BudgetWise Daily Summary',

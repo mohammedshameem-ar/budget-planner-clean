@@ -115,29 +115,19 @@ app.post('/api/test-notification', async (req, res) => {
             }
         });
 
-        let budgetLimit = 0, income = 0, incomeEnabled = true, budgetEnabled = true;
-        let carryOverBalance = 0, balanceContributedToSavings = 0;
+        let savings = 0;
 
         // Fetch settings from standardized subcollection: transactionDetails/config/userSettings/settings
         const settingsDoc = await userRef.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
         if (settingsDoc.exists) {
             const sData = settingsDoc.data();
-            budgetLimit = sData.budgetLimit || 0;
-            income = sData.income || 0;
-            incomeEnabled = sData.incomeEnabled !== false;
-            budgetEnabled = sData.budgetEnabled !== false;
-            carryOverBalance = sData.carryOverBalance || 0;
-            balanceContributedToSavings = sData.balanceContributedToSavings || 0;
+            savings = sData.savings || 0;
         }
 
-        const availableBalance = Number(income || 0) - Number(budgetLimit || 0) - Number(balanceContributedToSavings || 0) + Number(carryOverBalance || 0);
-        const remainingBudget = Number(budgetLimit || 0) - Number(totalSpentMonth || 0);
-
-        // Simple Notification Logic (Reverted from 4-case)
-        const body = `Today: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
-                     `Month: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
-                     `Remaining: ₹${remainingBudget.toLocaleString('en-IN')}\n` +
-                     `Available Balance: ₹${availableBalance.toLocaleString('en-IN')}`;
+        // Simplified Notification Logic
+        const body = `Today spent: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
+                     `Monthly spent: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
+                     `Savings: ₹${savings.toLocaleString('en-IN')}`;
 
         const payload = JSON.stringify({
             title: 'BudgetWise Daily Summary',
