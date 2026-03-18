@@ -87,8 +87,8 @@ const OnlineServicesForm = ({ onClose }) => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: '1rem',
-                        padding: '1rem', background: 'var(--surface-light)',
-                        borderRadius: '12px', border: '1px solid var(--glass-stroke)'
+                        padding: '1rem', background: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '12px', border: '1px solid var(--glass-border)'
                     }}>
                         <div style={{
                             width: '48px', height: '48px',
@@ -132,9 +132,10 @@ const OnlineServicesForm = ({ onClose }) => {
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                         <button type="button" onClick={() => setSelectedService(null)} className="btn" style={{
                             flex: 1,
-                            background: 'var(--surface-light)',
-                            border: '1.5px solid var(--glass-stroke)',
-                            justifyContent: 'center'
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1.5px solid var(--glass-border)',
+                            justifyContent: 'center',
+                            color: 'var(--text-main)'
                         }}>
                             Back
                         </button>
@@ -162,7 +163,7 @@ const OnlineServicesForm = ({ onClose }) => {
                             padding: '0.75rem 0.75rem 0.75rem 2.5rem',
                             borderRadius: '12px',
                             border: '1px solid var(--glass-border)',
-                            background: 'var(--surface-light)',
+                            background: 'rgba(255, 255, 255, 0.05)',
                             fontSize: '0.9rem',
                             color: 'var(--text-main)',
                             outline: 'none'
@@ -197,8 +198,8 @@ const OnlineServicesForm = ({ onClose }) => {
                                         style={{
                                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                             padding: '0.75rem 1rem',
-                                            background: 'var(--surface-light)',
-                                            border: '1px solid var(--glass-stroke)',
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid var(--glass-border)',
                                             borderRadius: '12px',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s ease',

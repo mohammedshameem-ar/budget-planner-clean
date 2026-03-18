@@ -180,7 +180,7 @@ const Dashboard = () => {
                                     border: '1.5px solid var(--glass-stroke)',
                                     background: 'var(--surface-light)',
                                     fontSize: '1rem',
-                                    color: 'var(--text)',
+                                    color: 'var(--text-main)',
                                     outline: 'none',
                                     boxSizing: 'border-box'
                                 }}
@@ -253,8 +253,8 @@ const Dashboard = () => {
                         )}
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', marginBottom: '-2px' }}>SpendBook</h1>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Smart expense tracking</p>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '-2px' }}>SpendBook</h1>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Smart expense tracking</p>
                     </div>
                     </div>
 
@@ -281,7 +281,12 @@ const Dashboard = () => {
                             No budget limit set!
                         </div>
                     )}
-                    <button className="btn btn-outline" onClick={() => setIsOnlineServicesModalOpen(true)} style={{ backgroundColor: '#ecfdf5', color: '#059669', borderColor: '#d1fae5', height: '42px', flex: '1 1 auto', justifyContent: 'center' }}>
+                    <button className="btn btn-outline" onClick={() => setIsOnlineServicesModalOpen(true)} style={{ 
+                        backgroundColor: 'var(--surface-light)', 
+                        color: 'var(--success)', 
+                        borderColor: 'var(--glass-border)', 
+                        height: '42px', flex: '1 1 auto', justifyContent: 'center' 
+                    }}>
                         <Globe size={16} />
                         Online Services
                     </button>
@@ -412,11 +417,15 @@ const Dashboard = () => {
                     <TransactionList
                         transactions={transactions.filter(t => !t.logo)}
                         title="Recent Transactions"
+                        scrollable={true}
+                        maxHeight="240px"
                     />
                     {transactions.some(t => t.logo) && (
                         <TransactionList
                             transactions={transactions.filter(t => t.logo)}
                             title="Online Services History"
+                            scrollable={true}
+                            maxHeight="240px"
                         />
                     )}
                 </div>

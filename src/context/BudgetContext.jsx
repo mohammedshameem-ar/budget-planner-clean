@@ -31,7 +31,7 @@ export const BudgetProvider = ({ children }) => {
     const [savings, setSavings] = useState(0);
     const [balanceContributedToSavings, setBalanceContributedToSavings] = useState(0);
     const [carryOverBalance, setCarryOverBalance] = useState(0);
-    const [avatar, setAvatar] = useState('https://api.dicebear.com/9.x/personas/svg?seed=Adrian&hair=buzzcut,fade,shortCombover,shortComboverChops,cap,bald,balding,sideShave,mohawk,beanie,curlyHighTop&facialHairProbability=40&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&skinColor=brown,copper,tan,wheat,darkBrown,antiqueWhite');
+    const [avatar, setAvatar] = useState('default');
     const [plans, setPlans] = useState([]);
     const [reminders, setReminders] = useState([]);
     const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
@@ -249,7 +249,7 @@ export const BudgetProvider = ({ children }) => {
                     totalExpenses: summaryData.totalExpenses,
                     budgetLimit: summaryData.budgetLimit,
                     remainingBudget: summaryData.remainingBudget,
-                    avatar: avatar,
+                    avatar: 'default',
                     updatedAt: Timestamp.now()
                 }, { merge: true });
             } catch (error) {

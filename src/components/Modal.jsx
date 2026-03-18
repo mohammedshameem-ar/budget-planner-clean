@@ -48,7 +48,7 @@ const Modal = ({ title, children, onClose }) => {
             >
                 {/* Header */}
                 <div className="flex-between" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>{title}</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0, color: 'var(--text-main)' }}>{title}</h3>
                     <button onClick={onClose} style={{ background: 'transparent', color: 'var(--text-muted)' }}>
                         <X size={24} />
                     </button>

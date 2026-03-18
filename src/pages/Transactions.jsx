@@ -220,7 +220,7 @@ const Transactions = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.85rem' }}>Date</th>
                                 <th style={{ padding: '1rem', fontSize: '0.85rem' }}>Note</th>
                                 <th style={{ padding: '1rem', fontSize: '0.85rem' }}>Amount</th>
-                                <th style={{ padding: '1rem', textAlign: 'right', fontSize: '0.85rem' }}>Actions</th>
+                                <th style={{ padding: '1rem', textAlign: 'center', fontSize: '0.85rem' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -280,14 +280,16 @@ const Transactions = () => {
                                             <td style={{ padding: '1rem', fontWeight: '700', fontSize: '0.95rem' }}>
                                                 ₹{parseFloat(t.amount).toLocaleString()}
                                             </td>
-                                            <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                                <button
-                                                    onClick={() => deleteTransaction(t.id)}
-                                                    className="btn-delete"
-                                                    title="Delete Transaction"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                            <td style={{ padding: '1rem' }}>
+                                                <div className="flex-center" style={{ justifyContent: 'center' }}>
+                                                    <button
+                                                        onClick={() => deleteTransaction(t.id)}
+                                                        className="btn-delete"
+                                                        title="Delete Transaction"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

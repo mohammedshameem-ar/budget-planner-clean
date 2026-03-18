@@ -1,12 +1,13 @@
 {
-    "name": "BudgetWise",
-    "short_name": "BudgetWise",
+    "name": "Personal Budget Planner",
+    "short_name": "Budget",
     "description": "Smart and beautiful budget tracking",
     "theme_color": "#10b981",
     "background_color": "#0f172a",
     "display": "standalone",
     "scope": "/",
     "start_url": "/",
+    "gcm_sender_id": "103953800507",
     "icons": [
         {
             "src": "/logo.svg",

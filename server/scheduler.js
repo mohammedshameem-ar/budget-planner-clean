@@ -125,8 +125,13 @@ async function runScheduler(force = false) {
                                 });
 
                                 const options = {
-                                    TTL: 86400,
-                                    urgency: 'normal'
+                                    vapidDetails: {
+                                        subject: `mailto:${process.env.VAPID_EMAIL}`,
+                                        publicKey: process.env.VAPID_PUBLIC_KEY,
+                                        privateKey: process.env.VAPID_PRIVATE_KEY
+                                    },
+                                    urgency: 'high',
+                                    TTL: 24 * 60 * 60 // 24 hours
                                 };
 
                                 const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();

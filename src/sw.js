@@ -18,7 +18,7 @@ clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-    console.log('[SW v1.6.0] Push event received');
+    console.log('[SW v1.6.1] Push event received at:', new Date().toISOString());
 
     let data = {};
     if (event.data) {

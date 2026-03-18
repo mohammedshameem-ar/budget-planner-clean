@@ -362,7 +362,7 @@ const Reports = () => {
                             <select
                                 value={selectedArchiveId}
                                 onChange={(e) => setSelectedArchiveId(e.target.value)}
-                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)' }}
+                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}
                             >
                                 <option value="current">Current / Final Data</option>
                                 {archivesForMonth.map((archive, index) => {

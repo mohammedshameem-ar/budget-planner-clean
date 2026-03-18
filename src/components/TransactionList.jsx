@@ -31,7 +31,7 @@ export const categoryIcons = {
     others: MoreHorizontal
 };
 
-const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions' }) => {
+const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions', maxHeight, scrollable = false }) => {
     const displayTransactions = transactions.slice(0, limit);
 
     return (
@@ -41,7 +41,15 @@ const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions
                 <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.4rem 0.85rem' }}>View All</button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className={scrollable ? "custom-scrollbar" : ""} style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '1rem',
+                minHeight: scrollable ? '100px' : 'auto',
+                height: scrollable ? (maxHeight || '240px') : 'auto',
+                overflowY: scrollable ? 'scroll' : 'visible',
+                paddingRight: scrollable ? '0.5rem' : '0'
+            }}>
                 {displayTransactions.length === 0 ? (
                     <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No transactions yet.</p>
                 ) : (
@@ -109,6 +117,5 @@ const TransactionList = ({ transactions, limit = 5, title = 'Recent Transactions
         </div>
     );
 };
-
 
 export default TransactionList;
