@@ -141,7 +141,7 @@ app.post('/api/test-notification', async (req, res) => {
 
         // Advanced options for better delivery
         const options = {
-            TTL: 3600, // 1 hour
+            TTL: 24 * 60 * 60, // 24 hours
             urgency: 'high'
         };
 

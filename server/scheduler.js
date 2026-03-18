@@ -63,7 +63,9 @@ async function runScheduler(force = false) {
                                 if (!userDocForTx.exists) return;
 
                                 const uData = userDocForTx.data();
-                                if (force || uData.dailyReminderLastSentDate !== todayStr) {
+                                if (force) {
+                                    shouldSend = true;
+                                } else if (uData.dailyReminderLastSentDate !== todayStr) {
                                     t.update(userRef, {
                                         dailyReminderLastSent: now,
                                         dailyReminderLastSentDate: todayStr
