@@ -10,15 +10,22 @@ if (!admin || !db) {
 // VAPID keys — use env vars, fall back to hardcoded for resilience
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
-const VAPID_EMAIL   = process.env.VAPID_EMAIL       || 'mailto:admin@budgetwise.app';
+let VAPID_EMAIL_RAW = process.env.VAPID_EMAIL       || 'mailto:admin@budgetwise.app';
+
+if (VAPID_EMAIL_RAW && !VAPID_EMAIL_RAW.startsWith('mailto:') && !VAPID_EMAIL_RAW.startsWith('http')) {
+    VAPID_EMAIL_RAW = `mailto:${VAPID_EMAIL_RAW}`;
+}
 
 // Set VAPID details once at module load — used by both scheduler and index.js
 try {
-    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+    webpush.setVapidDetails(VAPID_EMAIL_RAW, VAPID_PUBLIC, VAPID_PRIVATE);
     console.log('[Scheduler] VAPID details configured.');
 } catch(e) {
     console.error('[Scheduler] VAPID setup failed:', e.message);
 }
+
+// Export the normalized email for use in payload options
+const VAPID_EMAIL = VAPID_EMAIL_RAW;
 
 /**
  * Main scheduler logic

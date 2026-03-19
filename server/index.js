@@ -43,11 +43,19 @@ app.get("/", (req, res) => {
 });
 
 // VAPID Keys
+let vapidEmailRaw = process.env.VAPID_EMAIL || 'mailto:admin@budgetwise.app';
+if (vapidEmailRaw && !vapidEmailRaw.startsWith('mailto:') && !vapidEmailRaw.startsWith('http')) {
+    vapidEmailRaw = `mailto:${vapidEmailRaw}`;
+}
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@budgetwise.app';
 
-webpush.setVapidDetails(vapidEmail, publicVapidKey, privateVapidKey);
+try {
+    webpush.setVapidDetails(vapidEmailRaw, publicVapidKey, privateVapidKey);
+    console.log('[Server] VAPID details configured.');
+} catch (err) {
+    console.error('[Server] VAPID configuration failed:', err.message);
+}
 
 app.get('/api/vapid-public-key', (req, res) => {
     res.json({ publicKey: publicVapidKey });
