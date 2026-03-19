@@ -1,9 +1,11 @@
 const cron = require('node-cron');
 const webpush = require('web-push');
 const { db, admin } = require('./config');
-require('dotenv').config();
+// Note: dotenv.config() is already called in index.js before requiring this
 
-if (!admin) console.error('FATAL: Admin missing in scheduler');
+if (!admin || !db) {
+    console.error('FATAL: Firebase Admin or Firestore DB is not initialized. Notifications will not be sent.');
+}
 
 // VAPID keys — use env vars, fall back to hardcoded for resilience
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
