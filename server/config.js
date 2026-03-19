@@ -1,20 +1,27 @@
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin
-// Use environment variables for deployment (Option 2)
+// Comprehensive Debugging for Render Environment
+console.log('[Config] Debugging Environment...');
+console.log('[Config] FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? 'EXISTS' : 'MISSING');
+console.log('[Config] FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL ? 'EXISTS' : 'MISSING');
+console.log('[Config] FIREBASE_PRIVATE_KEY:', process.env.FIREBASE_PRIVATE_KEY ? ('EXISTS (length: ' + process.env.FIREBASE_PRIVATE_KEY.length + ')') : 'MISSING');
+
 let serviceAccount;
 try {
-    if (process.env.FIREBASE_PRIVATE_KEY) {
+    if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_PROJECT_ID) {
         serviceAccount = {
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
             privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         };
+        console.log('[Config] Built service account object from environment.');
     } else {
+        console.log('[Config] Private Key or Project ID missing, attempting to load file...');
         serviceAccount = require('./serviceAccountKey.json');
+        console.log('[Config] Successfully loaded serviceAccountKey.json from file.');
     }
 } catch (e) {
-    console.warn('[Config] Service account key not found, expecting environment variables.');
+    console.warn('[Config] Service account source not found (File or Env):', e.message);
 }
 
 if (serviceAccount || process.env.FIREBASE_PRIVATE_KEY) {
