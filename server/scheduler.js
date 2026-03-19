@@ -1,8 +1,22 @@
 const cron = require('node-cron');
 const webpush = require('web-push');
 const { db, admin } = require('./config');
+require('dotenv').config();
 
 if (!admin) console.error('FATAL: Admin missing in scheduler');
+
+// VAPID keys — use env vars, fall back to hardcoded for resilience
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
+const VAPID_EMAIL   = process.env.VAPID_EMAIL       || 'mailto:admin@budgetwise.app';
+
+// Set VAPID details once at module load — used by both scheduler and index.js
+try {
+    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+    console.log('[Scheduler] VAPID details configured.');
+} catch(e) {
+    console.error('[Scheduler] VAPID setup failed:', e.message);
+}
 
 /**
  * Main scheduler logic
@@ -45,15 +59,13 @@ async function runScheduler(force = false) {
                         const currentLocalTime = currentLocalTimeRaw.replace(/[^\d:]/g, '');
 
                         const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
-
                         const normalizedReminderTime = reminderTime.replace(/[^\d:]/g, '');
-                        let due = (currentLocalTime === normalizedReminderTime);
-                        
-                        if (force || currentLocalTime > normalizedReminderTime) {
-                             if (force || userData.dailyReminderLastSentDate !== todayStr) {
-                                 due = true;
-                             }
-                        }
+
+                        // Only mark 'due' if we haven't already sent today (prevents double-send races).
+                        // Force-mode bypasses the time check but still respects the transaction lock.
+                        const timeMatches = (currentLocalTime === normalizedReminderTime);
+                        const notSentToday = (userData.dailyReminderLastSentDate !== todayStr);
+                        const due = force ? true : (timeMatches && notSentToday);
 
                         if (due) {
                             let shouldSend = false;
@@ -94,22 +106,36 @@ async function runScheduler(force = false) {
                                     }
                                 });
 
+                                 let budgetLimit = 0;
                                  let savings = 0;
 
                                  const profileSettingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
                                  if (profileSettingsSnap.exists) {
                                      const pData = profileSettingsSnap.data();
-                                     savings = pData.savings || 0;
+                                     budgetLimit = pData.budgetLimit || 0;
+                                     savings     = pData.savings    || 0;
                                  }
 
-                                 // Simplified Notification Body
-                                 const body = `Today spent: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
-                                              `Monthly spent: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
-                                              `Savings: ₹${savings.toLocaleString('en-IN')}`;
+                                 // Rich Notification Body with budget context
+                                 const budgetRemaining = budgetLimit > 0 ? Math.max(0, budgetLimit - totalSpentMonth) : null;
+                                 const usagePct = budgetLimit > 0 ? Math.min(100, Math.round((totalSpentMonth / budgetLimit) * 100)) : null;
+                                 const barFilled = usagePct !== null ? Math.round(usagePct / 10) : 0;
+                                 const bar = usagePct !== null ? `[${'\u2588'.repeat(barFilled)}${'\u2591'.repeat(10 - barFilled)}] ${usagePct}%` : '';
+
+                                 const bodyLines = [
+                                     `Today's spend:  \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}`,
+                                     `Monthly spend:  \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}`,
+                                 ];
+                                 if (budgetLimit > 0) {
+                                     bodyLines.push(`Budget limit:   \u20b9${budgetLimit.toLocaleString('en-IN')}`);
+                                     bodyLines.push(`Remaining:      \u20b9${budgetRemaining.toLocaleString('en-IN')} ${bar}`);
+                                 }
+                                 if (savings > 0) bodyLines.push(`Savings:        \u20b9${savings.toLocaleString('en-IN')}`);
+                                 const body = bodyLines.join('\n');
 
                                 const payload = JSON.stringify({
                                     title: 'BudgetWise Daily Summary',
-                                    body: body,
+                                    body,
                                     tag: `daily-summary-${todayStr}`,
                                     icon: '/logo.svg',
                                     badge: '/logo.svg',
@@ -119,12 +145,12 @@ async function runScheduler(force = false) {
 
                                 const options = {
                                     vapidDetails: {
-                                        subject: `mailto:${process.env.VAPID_EMAIL}`,
-                                        publicKey: process.env.VAPID_PUBLIC_KEY,
-                                        privateKey: process.env.VAPID_PRIVATE_KEY
+                                        subject: VAPID_EMAIL,
+                                        publicKey: VAPID_PUBLIC,
+                                        privateKey: VAPID_PRIVATE
                                     },
                                     urgency: 'high',
-                                    TTL: 24 * 60 * 60 // 24 hours
+                                    TTL: 24 * 60 * 60 // 24 hours - queued if device is off
                                 };
 
                                 const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
@@ -196,9 +222,32 @@ async function runScheduler(force = false) {
 
                         if (shouldSendReminder) {
                             console.log(`[Scheduler] Sending Reminder for user ${userId}: ${reminder.notes}`);
+
+                            // Fetch budget context to enrich reminder notification
+                            let reminderBudgetLine = '';
+                            try {
+                                const settingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
+                                if (settingsSnap.exists) {
+                                    const sData = settingsSnap.data();
+                                    const bLimit = sData.budgetLimit || 0;
+                                    if (bLimit > 0) {
+                                        // Quick monthly spend for context
+                                        const monthStr = new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit' }).format(nowJS);
+                                        const txSnap2 = await userDoc.ref.collection('transactionDetails').doc('history').collection('userTransactions').get();
+                                        let mSpent = 0;
+                                        txSnap2.docs.forEach(d => {
+                                            const td = d.data();
+                                            if (td.type === 'expense' && td.date && td.date.startsWith(monthStr)) mSpent += td.amount || 0;
+                                        });
+                                        const remaining = Math.max(0, bLimit - mSpent);
+                                        reminderBudgetLine = `\n💰 Budget remaining: ₹${remaining.toLocaleString('en-IN')}`;
+                                    }
+                                }
+                            } catch(e) { /* non-critical, skip */ }
+
                             const payload = JSON.stringify({
-                                title: 'BudgetWise Reminder',
-                                body: reminder.notes || 'Reminder!',
+                                title: '⏰ BudgetWise Reminder',
+                                body: (reminder.notes || 'Reminder!') + reminderBudgetLine,
                                 tag: `reminder-${remDoc.id}`,
                                 icon: '/logo.svg',
                                 badge: '/logo.svg',
@@ -206,7 +255,15 @@ async function runScheduler(force = false) {
                                 timestamp: Date.now()
                             });
 
-                            const options = { TTL: 3600, urgency: 'high' };
+                            const options = {
+                                vapidDetails: {
+                                    subject: VAPID_EMAIL,
+                                    publicKey: VAPID_PUBLIC,
+                                    privateKey: VAPID_PRIVATE
+                                },
+                                TTL: 3600,
+                                urgency: 'high'
+                            };
 
                             const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
                             const sendPromises = subsSnap.docs.map(d => 

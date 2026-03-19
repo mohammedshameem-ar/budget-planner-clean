@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2, Settings as SettingsIcon, Wallet, Sparkles } from 'lucide-react';
+import { RefreshCw, AlertCircle, Bell, Download, Activity, Shield, ChevronUp, ChevronDown, Check, X, Edit2, Settings as SettingsIcon, Wallet, Sparkles, BellOff, BellRing, Wifi } from 'lucide-react';
 import Modal from '../components/Modal';
-import { collection, doc, getDocs, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const Settings = () => {
-    const { user, subscribeUserToPush } = useAuth();
+    const { user, subscribeUserToPush, notifPermission, requestNotificationPermission } = useAuth();
     const { avatar, updateAvatar, toggleAvatarPicker, transactions, budgetLimit, updateBudgetLimit, income, updateIncome, incomeEnabled, updateIncomeEnabled, budgetEnabled, updateBudgetEnabled, clearTransactions, clearAllData, getSummary, reminders, addReminder, deleteReminder } = useBudget();
     const [budgetInput, setBudgetInput] = useState(budgetLimit);
     const [incomeInput, setIncomeInput] = useState(income);
@@ -17,9 +17,10 @@ const Settings = () => {
     // PWA & Notification State
     const [isInstalled, setIsInstalled] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
-    const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
     const [swActive, setSwActive] = useState(false);
-    const [vapidKey, setVapidKey] = useState('');
+    // Inline push toast — shown instead of invasive alert()
+    const [pushToast, setPushToast] = useState(null);
+    const pushToastTimer = useRef(null);
 
     // Modal State
     const [showIncomeModal, setShowIncomeModal] = useState(false);
@@ -57,7 +58,6 @@ const Settings = () => {
                 try {
                     const registration = await navigator.serviceWorker.ready;
                     setSwActive(!!registration?.active);
-                    setNotificationPermission(Notification.permission);
                 } catch (e) {
                     console.error('Error checking SW:', e);
                     setSwActive(false);
@@ -76,10 +76,21 @@ const Settings = () => {
 
         // Listen for controllerchange to update SW status
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                setSwActive(true);
-            });
+            navigator.serviceWorker.addEventListener('controllerchange', () => setSwActive(true));
         }
+
+        // Listen for push events broadcast by SW — show inline toast, NOT alert()
+        const handleBudgetwisePush = (e) => {
+            clearTimeout(pushToastTimer.current);
+            const detail = e.detail || {};
+            const title = detail?.notification?.title || detail?.title || 'BudgetWise';
+            const body = detail?.notification?.body || detail?.body || 'New notification received';
+            setPushToast({ title, body });
+            pushToastTimer.current = setTimeout(() => setPushToast(null), 6000);
+        };
+        window.addEventListener('budgetwise-push', handleBudgetwisePush);
+
+        return () => window.removeEventListener('budgetwise-push', handleBudgetwisePush);
     }, []);
 
     // Add reminder handler (shows confirmation first)
@@ -184,31 +195,20 @@ const Settings = () => {
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
-    useEffect(() => {
-        const fetchKey = async () => {
-            try {
-                const { getVapidPublicKey } = await import('../api/push');
-                const key = await getVapidPublicKey();
-                setVapidKey(key);
-            } catch (e) {
-                console.error('Failed to fetch VAPID key for diagnostics:', e);
-            }
-        };
-        fetchKey();
-    }, []);
-
+    // SW message listener: show inline toast for PUSH_RECEIVED (no alert popup)
     useEffect(() => {
         if (!('serviceWorker' in navigator)) return;
-        
-        const handleMessage = (event) => {
+        const handleSWMessage = (event) => {
             if (event.data && event.data.type === 'PUSH_RECEIVED') {
-                console.log('[Settings] SW reported push received:', event.data);
-                alert(`🔔 DEBUG: Service Worker received the push event!\n\nPayload: ${JSON.stringify(event.data.payload)}\nTime: ${event.data.timestamp}\n\nIf you see this but NO system notification, the issue is with Windows/Chrome notification settings.`);
+                console.log('[Settings] SW push received:', event.data);
+                clearTimeout(pushToastTimer.current);
+                const p = event.data.payload || {};
+                setPushToast({ title: p.title || 'BudgetWise', body: p.body || 'Push received ✓' });
+                pushToastTimer.current = setTimeout(() => setPushToast(null), 6000);
             }
         };
-
-        navigator.serviceWorker.addEventListener('message', handleMessage);
-        return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+        navigator.serviceWorker.addEventListener('message', handleSWMessage);
+        return () => navigator.serviceWorker.removeEventListener('message', handleSWMessage);
     }, []);
 
     const handleInstallClick = async () => {
@@ -931,44 +931,87 @@ const Settings = () => {
             </div >
 
             <div className="glass-panel" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ background: 'rgba(236, 72, 153, 0.1)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
                         <Bell size={18} color="var(--cat-entertainment)" />
                     </div>
                     Notification Controls
                 </h2>
 
-                {/* Force Re-subscribe button */}
+                {/* ── Notification Status Badge ── */}
+                {(() => {
+                    const granted = notifPermission === 'granted';
+                    const denied  = notifPermission === 'denied';
+                    const defaultP = !granted && !denied;
+                    const allGood  = granted && swActive;
+
+                    let bgColor, borderColor, icon, title, detail;
+                    if (allGood)    { bgColor = 'rgba(16,185,129,0.08)'; borderColor = 'rgba(16,185,129,0.35)'; icon = <BellRing size={18} color="var(--success)" />; title = 'Notifications Active'; detail = 'System push & daily summaries are fully enabled.'; }
+                    else if (denied) { bgColor = 'rgba(239,68,68,0.08)'; borderColor = 'rgba(239,68,68,0.35)';   icon = <BellOff  size={18} color="var(--danger)" />;  title = 'Notifications Blocked'; detail = 'Open your browser site settings and allow notifications for this site, then re-subscribe below.'; }
+                    else if (granted && !swActive) { bgColor = 'rgba(251,191,36,0.08)'; borderColor = 'rgba(251,191,36,0.4)'; icon = <Wifi size={18} color="var(--warning)" />; title = 'Service Worker Not Ready'; detail = 'Hard-refresh (Ctrl+Shift+R) and re-subscribe. Push will work once the SW is active.'; }
+                    else             { bgColor = 'rgba(59,130,246,0.08)'; borderColor = 'rgba(59,130,246,0.35)'; icon = <Bell size={18} color="var(--primary)" />;   title = 'Permission Not Yet Granted'; detail = 'Click "Enable Notifications" below to allow push notifications.'; }
+
+                    return (
+                        <div style={{ padding: '0.85rem 1rem', background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                            <div style={{ flexShrink: 0, marginTop: '2px' }}>{icon}</div>
+                            <div>
+                                <p style={{ fontWeight: '600', margin: 0, fontSize: '0.95rem' }}>{title}</p>
+                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{detail}</p>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Inline push toast — appears in place of intrusive alert */}
+                {pushToast && (
+                    <div className="animate-fade-in" style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                        <div>
+                            <p style={{ margin: 0, fontWeight: '600', fontSize: '0.9rem' }}>🔔 {pushToast.title}</p>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{pushToast.body}</p>
+                        </div>
+                        <button onClick={() => setPushToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}><X size={16} /></button>
+                    </div>
+                )}
+
+                {/* ── Enable Notifications (shown only when permission = default) ── */}
+                {notifPermission === 'default' && (
+                    <button
+                        onClick={async () => {
+                            const result = await requestNotificationPermission();
+                            if (result === 'granted' && user) {
+                                await subscribeUserToPush(user.id, true);
+                                setPushToast({ title: 'Notifications Enabled ✓', body: 'You will now receive budget summaries and reminders.' });
+                                pushToastTimer.current = setTimeout(() => setPushToast(null), 5000);
+                            }
+                        }}
+                        className="btn btn-primary"
+                        style={{ width: '100%', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                        <BellRing size={18} /> Enable Notifications
+                    </button>
+                )}
+
+                {/* ── Force Re-subscribe ── */}
                 <button
                     onClick={async () => {
-                        if (!user) return alert('Please log in first.');
+                        if (!user) return;
                         try {
                             const API_BASE = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.onrender.com/api';
-                            // Step 1: Delete all stale subscriptions from server
                             const res = await fetch(`${API_BASE}/subscriptions/${user.id}/all`, { method: 'DELETE' });
-                            const data = await res.json();
-                            console.log('[ReSubscribe] Server reset:', data);
-
-                            // Step 2: Unsubscribe from browser push manager and update SW
+                            await res.json();
                             if ('serviceWorker' in navigator) {
                                 const reg = await navigator.serviceWorker.ready;
-                                // Force update the service worker to make sure we have the latest code
                                 await reg.update().catch(e => console.warn('SW Update failed:', e));
-                                
                                 const existing = await reg.pushManager.getSubscription();
                                 if (existing) await existing.unsubscribe();
                             }
-
-                            // Step 3: Create fresh subscription (forcing fresh keys)
                             await subscribeUserToPush(user.id, true);
-                            alert('✅ Re-subscribed successfully! Try "Test Notification" now.');
+                            setPushToast({ title: '✅ Re-subscribed', body: 'Fresh subscription registered. Test notification now.' });
+                            pushToastTimer.current = setTimeout(() => setPushToast(null), 6000);
                         } catch (err) {
                             console.error('Re-subscribe failed:', err);
-                            if (err.message && err.message.includes('fetch')) {
-                                 alert(`❌ Backend unreachable at: ${API_BASE}\n\nIf deployed, check your server status and FRONTEND_URL/VITE_API_URL settings.`);
-                            } else {
-                                alert('Re-subscribe failed: ' + err.message);
-                            }
+                            setPushToast({ title: '❌ Re-subscribe failed', body: err.message });
+                            pushToastTimer.current = setTimeout(() => setPushToast(null), 8000);
                         }
                     }}
                     className="btn btn-outline"
@@ -982,6 +1025,7 @@ const Settings = () => {
                         onClick={handleTestNotification}
                         className="btn btn-outline"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center' }}
+                        disabled={notifPermission !== 'granted'}
                     >
                         <Activity size={18} /> Test Notification
                     </button>
@@ -990,12 +1034,13 @@ const Settings = () => {
                         onClick={handleDebugScheduler}
                         className="btn btn-outline"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, justifyContent: 'center', borderColor: 'var(--success)', color: 'var(--success)' }}
+                        disabled={notifPermission !== 'granted'}
                     >
-                        <RefreshCw size={18} /> Force Run Scheduled Tasks (Test)
+                        <RefreshCw size={18} /> Force Run Daily Summary
                     </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                    If notifications fail: click "Force Re-subscribe" first, then test again.
+                    If notifications are broken: click "Force Re-subscribe" then "Test Notification".
                 </p>
             </div>
 

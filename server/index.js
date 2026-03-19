@@ -15,7 +15,12 @@ app.use(cors({
     origin: [
         'https://news-9d3d2.web.app',
         'https://news-9d3d2.firebaseapp.com',
+        'https://budget-planner-clean.web.app',
+        'https://budget-planner-clean.firebaseapp.com',
+        'https://budget-planner-clean-1.web.app',
+        'https://budget-planner-clean-1.firebaseapp.com',
         'http://localhost:5173',
+        'http://localhost:4173',
         /\.firebaseapp\.com$/,
         /\.web\.app$/
     ],

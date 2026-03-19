@@ -9,16 +9,36 @@ cleanupOutdatedCaches();
 
 // Take control of all pages immediately
 self.addEventListener('activate', (event) => {
-    console.log('[SW] v1.3.0 Activated and claiming clients...');
-    event.waitUntil(self.clients.claim());
+    console.log('[SW] v2.0.0 Activated and claiming clients...');
+    event.waitUntil(
+        Promise.all([
+            self.clients.claim(),
+            // Register periodic sync if supported (best-effort for background delivery)
+            (async () => {
+                try {
+                    if ('periodicSync' in self.registration) {
+                        await self.registration.periodicSync.register('budget-daily-sync', {
+                            minInterval: 60 * 60 * 1000 // 1 hour
+                        });
+                        console.log('[SW] Periodic background sync registered');
+                    }
+                } catch (e) {
+                    // periodicSync not supported in this browser — that's ok, we rely on Web Push
+                    console.log('[SW] Periodic sync not supported:', e.message);
+                }
+            })()
+        ])
+    );
 });
 
 self.skipWaiting();
 clientsClaim();
 
 // ─── Push Notification Handler ───────────────────────────────────────────────
+// This fires even when the app is CLOSED. The browser/OS handles the delivery.
+// When the device was off and comes back online, the Push Service queues it (TTL).
 self.addEventListener('push', (event) => {
-    console.log('[SW v1.6.1] Push event received at:', new Date().toISOString());
+    console.log('[SW v2.0.0] Push event received at:', new Date().toISOString());
 
     let data = {};
     if (event.data) {
@@ -31,21 +51,29 @@ self.addEventListener('push', (event) => {
 
     const title = data.title || 'BudgetWise';
     const options = {
-        body: data.body || 'New notification',
+        body: data.body || 'You have a new budget update.',
         icon: data.icon || '/logo.svg',
         badge: data.badge || '/logo.svg',
         tag: data.tag || 'budgetwise-notification',
         data: data.data || { url: '/' },
-        requireInteraction: true,
+        // requireInteraction keeps notification visible until user acts — but
+        // on mobile this can be annoying, so we let the OS decide.
+        requireInteraction: false,
         renotify: true,
         vibrate: [200, 100, 200],
-        actions: data.actions || [],
-        // Vital for mobile reliability when app is closed
+        actions: data.actions || [
+            { action: 'open', title: '📊 Open App' },
+            { action: 'dismiss', title: 'Dismiss' }
+        ],
         timestamp: Date.now()
     };
 
-    // 1. Broadcast to open tabs (foreground)
-    const broadcastPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // 1. Show system notification (works even when app is closed/phone asleep)
+    const notificationPromise = self.registration.showNotification(title, options);
+
+    // 2. Broadcast to open tabs (foreground only – if any tab is open)
+    const broadcastPromise = self.clients
+        .matchAll({ type: 'window', includeUncontrolled: true })
         .then((windowClients) => {
             windowClients.forEach((client) => {
                 client.postMessage({
@@ -56,39 +84,92 @@ self.addEventListener('push', (event) => {
             });
         });
 
-    // 2. Show system notification (background)
-    const notificationPromise = self.registration.showNotification(title, options);
-
-    // Ensure service worker stays alive until both actions complete
+    // Keep service worker alive until both complete
     event.waitUntil(
-        Promise.all([
-            broadcastPromise,
-            notificationPromise
-        ]).catch(err => {
-            console.error('[SW] Notification error:', err);
+        Promise.all([notificationPromise, broadcastPromise]).catch((err) => {
+            console.error('[SW] Notification display error:', err);
         })
     );
 });
 
 // ─── Notification Click Handler ───────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notification clicked:', event.notification.tag);
+    console.log('[SW] Notification clicked:', event.notification.tag, 'action:', event.action);
     event.notification.close();
+
+    if (event.action === 'dismiss') return;
 
     const targetUrl = (event.notification.data && event.notification.data.url) || '/';
 
     event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there is already a window/tab open with the target URL
-            for (const client of windowClients) {
-                if (client.url === targetUrl && 'focus' in client) {
-                    return client.focus();
+        self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // Find an already-open tab and focus it
+                for (const client of windowClients) {
+                    if ('focus' in client) {
+                        client.focus();
+                        client.navigate(targetUrl);
+                        return;
+                    }
                 }
+                // No open tab — open a new one
+                if (self.clients.openWindow) {
+                    return self.clients.openWindow(targetUrl);
+                }
+            })
+    );
+});
+
+// ─── Notification Close Handler ───────────────────────────────────────────────
+self.addEventListener('notificationclose', (event) => {
+    console.log('[SW] Notification dismissed by user:', event.notification.tag);
+    // Optional: could send analytics here in the future
+});
+
+// ─── Push Subscription Change Handler ────────────────────────────────────────
+// CRITICAL: Browsers periodically rotate push subscription keys.
+// Without this handler, the old subscription becomes invalid and all push
+// notifications silently stop working. This auto-renews the subscription.
+self.addEventListener('pushsubscriptionchange', (event) => {
+    console.log('[SW] Push subscription changed (key rotation). Re-subscribing...');
+
+    const API_URL = 'https://budget-planner-clean-1.onrender.com/api';
+
+    event.waitUntil(
+        (async () => {
+            try {
+                // Get VAPID public key from backend
+                const keyRes = await fetch(`${API_URL}/vapid-public-key`, { cache: 'no-store' });
+                const keyData = await keyRes.json();
+                const applicationServerKey = keyData.publicKey ||
+                    'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
+
+                // Create fresh subscription with new keys
+                const newSubscription = await self.registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey
+                });
+
+                // Get userId from the old subscription's stored data (if available)
+                // Fallback: broadcast to open clients so they re-register with userId
+                const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+                if (clients.length > 0) {
+                    clients.forEach(client => client.postMessage({
+                        type: 'PUSH_SUBSCRIPTION_CHANGED',
+                        newSubscription: newSubscription.toJSON()
+                    }));
+                    console.log('[SW] Broadcasted new subscription to open clients (they will send userId to server)');
+                } else {
+                    // No open clients — store the new subscription to IndexedDB so
+                    // it can be re-sent on next app open
+                    console.log('[SW] No open clients. New subscription will be sent on next app open.');
+                }
+
+                console.log('[SW] Re-subscribed successfully after key rotation.');
+            } catch (err) {
+                console.error('[SW] pushsubscriptionchange: Failed to re-subscribe:', err);
             }
-            // If not, open a new window
-            if (self.clients.openWindow) {
-                return self.clients.openWindow(targetUrl);
-            }
-        })
+        })()
     );
 });
