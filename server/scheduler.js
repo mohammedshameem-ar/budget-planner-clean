@@ -132,18 +132,14 @@ async function runScheduler(force = false) {
                                  const bar = usagePct !== null ? `[${'\u2588'.repeat(barFilled)}${'\u2591'.repeat(10 - barFilled)}] ${usagePct}%` : '';
 
                                  const bodyLines = [
-                                     `Today's spend:  \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}`,
-                                     `Monthly spend:  \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}`,
+                                     `Total spend:   \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}`,
+                                     `Monthly spend: \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}`,
                                  ];
-                                 if (budgetLimit > 0) {
-                                     bodyLines.push(`Budget limit:   \u20b9${budgetLimit.toLocaleString('en-IN')}`);
-                                     bodyLines.push(`Remaining:      \u20b9${budgetRemaining.toLocaleString('en-IN')} ${bar}`);
-                                 }
-                                 if (savings > 0) bodyLines.push(`Savings:        \u20b9${savings.toLocaleString('en-IN')}`);
+                                 if (savings > 0) bodyLines.push(`Savings:       \u20b9${savings.toLocaleString('en-IN')}`);
                                  const body = bodyLines.join('\n');
 
                                 const payload = JSON.stringify({
-                                    title: 'BudgetWise Daily Summary',
+                                    title: 'Budget Wise Summary',
                                     body,
                                     tag: `daily-summary-${todayStr}`,
                                     icon: '/logo.svg',
@@ -232,31 +228,9 @@ async function runScheduler(force = false) {
                         if (shouldSendReminder) {
                             console.log(`[Scheduler] Sending Reminder for user ${userId}: ${reminder.notes}`);
 
-                            // Fetch budget context to enrich reminder notification
-                            let reminderBudgetLine = '';
-                            try {
-                                const settingsSnap = await userDoc.ref.collection('transactionDetails').doc('config').collection('userSettings').doc('settings').get();
-                                if (settingsSnap.exists) {
-                                    const sData = settingsSnap.data();
-                                    const bLimit = sData.budgetLimit || 0;
-                                    if (bLimit > 0) {
-                                        // Quick monthly spend for context
-                                        const monthStr = new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit' }).format(nowJS);
-                                        const txSnap2 = await userDoc.ref.collection('transactionDetails').doc('history').collection('userTransactions').get();
-                                        let mSpent = 0;
-                                        txSnap2.docs.forEach(d => {
-                                            const td = d.data();
-                                            if (td.type === 'expense' && td.date && td.date.startsWith(monthStr)) mSpent += td.amount || 0;
-                                        });
-                                        const remaining = Math.max(0, bLimit - mSpent);
-                                        reminderBudgetLine = `\n💰 Budget remaining: ₹${remaining.toLocaleString('en-IN')}`;
-                                    }
-                                }
-                            } catch(e) { /* non-critical, skip */ }
-
                             const payload = JSON.stringify({
                                 title: '⏰ BudgetWise Reminder',
-                                body: (reminder.notes || 'Reminder!') + reminderBudgetLine,
+                                body: (reminder.notes || 'Reminder!'),
                                 tag: `reminder-${remDoc.id}`,
                                 icon: '/logo.svg',
                                 badge: '/logo.svg',

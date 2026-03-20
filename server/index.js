@@ -139,12 +139,12 @@ app.post('/api/test-notification', async (req, res) => {
         }
 
         // Simplified Notification Logic
-        const body = `Today spent: ₹${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
-                     `Monthly spent: ₹${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
-                     `Savings: ₹${savings.toLocaleString('en-IN')}`;
+        const body = `Total spend:   \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
+                     `Monthly spend: \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
+                     `Savings:       \u20b9${savings.toLocaleString('en-IN')}`;
 
         const payload = JSON.stringify({
-            title: 'BudgetWise Daily Summary',
+            title: 'Budget Wise Summary',
             body: body,
             tag: `test-${todayStr}`,
             icon: '/logo.svg',
