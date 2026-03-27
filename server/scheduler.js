@@ -144,12 +144,17 @@ async function runScheduler(force = false) {
                                  if (savings > 0) bodyLines.push(`Savings:       \u20b9${savings.toLocaleString('en-IN')}`);
                                  const body = bodyLines.join('\n');
 
-                                const payload = JSON.stringify({
-                                    title: 'Budget Wise Summary',
+                                 const payload = JSON.stringify({
+                                    title: 'BudgetWise Summary',
                                     body,
                                     tag: `daily-summary-${todayStr}`,
                                     icon: '/logo.svg',
                                     badge: '/logo.svg',
+                                    vibrate: [200, 100, 200],
+                                    actions: [
+                                        { action: 'open', title: '📊 Open App' },
+                                        { action: 'dismiss', title: 'Dismiss' }
+                                    ],
                                     data: { url: '/dashboard' },
                                     timestamp: Date.now()
                                 });

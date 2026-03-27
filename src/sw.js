@@ -99,18 +99,15 @@ self.addEventListener('notificationclick', (event) => {
 
     if (event.action === 'dismiss') return;
 
-    const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+    const targetUrl = event.notification.data?.url || '/';
 
     event.waitUntil(
-        self.clients
-            .matchAll({ type: 'window', includeUncontrolled: true })
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
                 // Find an already-open tab and focus it
                 for (const client of windowClients) {
-                    if ('focus' in client) {
-                        client.focus();
-                        client.navigate(targetUrl);
-                        return;
+                    if (client.url.includes(targetUrl) && 'focus' in client) {
+                        return client.focus();
                     }
                 }
                 // No open tab — open a new one

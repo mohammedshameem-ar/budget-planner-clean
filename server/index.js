@@ -144,11 +144,16 @@ app.post('/api/test-notification', async (req, res) => {
                      `Savings:       \u20b9${savings.toLocaleString('en-IN')}`;
 
         const payload = JSON.stringify({
-            title: 'Budget Wise Summary',
+            title: 'BudgetWise summary',
             body: body,
             tag: `test-${todayStr}`,
             icon: '/logo.svg',
             badge: '/logo.svg',
+            vibrate: [200, 100, 200],
+            actions: [
+                { action: 'open', title: '📊 Open App' },
+                { action: 'dismiss', title: 'Dismiss' }
+            ],
             data: { url: '/dashboard' },
             timestamp: Date.now()
         });
