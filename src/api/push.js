@@ -58,6 +58,7 @@ export const debugRunScheduler = async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-admin-secret': 'budgetwise-admin-2024'
             }
         });
         if (!response.ok) {
