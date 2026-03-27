@@ -147,20 +147,24 @@ app.post('/api/test-notification', async (req, res) => {
             title: 'BudgetWise summary',
             body: body,
             tag: `test-${todayStr}`,
-            icon: '/logo.svg',
-            badge: '/logo.svg',
+            icon: 'https://news-9d3d2.web.app/logo.svg',
+            badge: 'https://news-9d3d2.web.app/logo.svg',
             vibrate: [200, 100, 200],
             actions: [
                 { action: 'open', title: '📊 Open App' },
                 { action: 'dismiss', title: 'Dismiss' }
             ],
-            data: { url: '/dashboard' },
+            data: { url: 'https://news-9d3d2.web.app/dashboard' },
             timestamp: Date.now()
         });
 
-        // Advanced options for better delivery
         const options = {
-            TTL: 24 * 60 * 60, // 24 hours
+            vapidDetails: {
+                subject: process.env.VAPID_EMAIL || 'shameemsc@gmail.com',
+                publicKey: process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M',
+                privateKey: process.env.VAPID_PRIVATE_KEY
+            },
+            TTL: 24 * 60 * 60,
             urgency: 'high'
         };
 

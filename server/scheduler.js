@@ -148,14 +148,14 @@ async function runScheduler(force = false) {
                                     title: 'BudgetWise Summary',
                                     body,
                                     tag: `daily-summary-${todayStr}`,
-                                    icon: '/logo.svg',
-                                    badge: '/logo.svg',
+                                    icon: 'https://news-9d3d2.web.app/logo.svg',
+                                    badge: 'https://news-9d3d2.web.app/logo.svg',
                                     vibrate: [200, 100, 200],
                                     actions: [
                                         { action: 'open', title: '📊 Open App' },
                                         { action: 'dismiss', title: 'Dismiss' }
                                     ],
-                                    data: { url: '/dashboard' },
+                                    data: { url: 'https://news-9d3d2.web.app/dashboard' },
                                     timestamp: Date.now()
                                 });
 
@@ -243,9 +243,9 @@ async function runScheduler(force = false) {
                                 title: '⏰ BudgetWise Reminder',
                                 body: (reminder.notes || 'Reminder!'),
                                 tag: `reminder-${remDoc.id}`,
-                                icon: '/logo.svg',
-                                badge: '/logo.svg',
-                                data: { url: '/settings' },
+                                icon: 'https://news-9d3d2.web.app/logo.svg',
+                                badge: 'https://news-9d3d2.web.app/logo.svg',
+                                data: { url: 'https://news-9d3d2.web.app/settings' },
                                 timestamp: Date.now()
                             });
 
@@ -255,7 +255,7 @@ async function runScheduler(force = false) {
                                     publicKey: VAPID_PUBLIC,
                                     privateKey: VAPID_PRIVATE
                                 },
-                                TTL: 3600,
+                                TTL: 24 * 60 * 60, // 24 hours
                                 urgency: 'high'
                             };
 
