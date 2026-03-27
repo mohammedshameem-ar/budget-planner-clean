@@ -9,7 +9,7 @@ export const getVapidPublicKey = async () => {
     } catch (error) {
         console.error('Error fetching VAPID key:', error);
         // Fallback to hardcoded key if backend is unreachable
-        return 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
+        return 'BN2C6tcs6OyhPqvI8bZzsn2d-SsicZDOhjf4lAUSR4mlJIfcKv9JKqq19UFjdBNMwseDrC_UOq9k1taqHo3pmmI';
     }
 };
 
@@ -48,6 +48,21 @@ export const sendTestNotification = async (userId) => {
         return await response.json();
     } catch (error) {
         console.error('Error sending test notification:', error);
+        throw error;
+    }
+};
+
+export const resetPushSubscriptions = async (userId) => {
+    try {
+        const response = await fetch(`${API_URL}/subscriptions/${userId}/all`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            throw new Error('Failed to reset subscriptions');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error resetting subscriptions:', error);
         throw error;
     }
 };

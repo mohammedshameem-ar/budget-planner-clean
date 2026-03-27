@@ -140,7 +140,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                 const keyRes = await fetch(`${API_URL}/vapid-public-key`, { cache: 'no-store' });
                 const keyData = await keyRes.json();
                 const applicationServerKey = keyData.publicKey ||
-                    'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
+                    'BN2C6tcs6OyhPqvI8bZzsn2d-SsicZDOhjf4lAUSR4mlJIfcKv9JKqq19UFjdBNMwseDrC_UOq9k1taqHo3pmmI';
 
                 // Create fresh subscription with new keys
                 const newSubscription = await self.registration.pushManager.subscribe({

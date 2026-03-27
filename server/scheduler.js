@@ -8,8 +8,8 @@ if (!admin || !db) {
 }
 
 // VAPID keys — use env vars, fall back to hardcoded for resilience
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BN2C6tcs6OyhPqvI8bZzsn2d-SsicZDOhjf4lAUSR4mlJIfcKv9JKqq19UFjdBNMwseDrC_UOq9k1taqHo3pmmI';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'A8jnngta4_lqRlJ663EYOfupGelrhq-CbsFTmqiI1vg';
 let VAPID_EMAIL_RAW = process.env.VAPID_EMAIL       || 'mailto:admin@budgetwise.app';
 
 if (VAPID_EMAIL_RAW && !VAPID_EMAIL_RAW.startsWith('mailto:') && !VAPID_EMAIL_RAW.startsWith('http')) {
@@ -159,14 +159,9 @@ async function runScheduler(force = false) {
                                     timestamp: Date.now()
                                 });
 
-                                const options = {
-                                    vapidDetails: {
-                                        subject: VAPID_EMAIL,
-                                        publicKey: VAPID_PUBLIC,
-                                        privateKey: VAPID_PRIVATE
-                                    },
-                                    urgency: 'high',
-                                    TTL: 24 * 60 * 60 // 24 hours - queued if device is off
+                                 const options = {
+                                    TTL: 24 * 60 * 60, // 24 hours - queued if device is off
+                                    urgency: 'high'
                                 };
 
                                 const subsSnap = await userDoc.ref.collection('pushSubscriptions').get();
@@ -249,12 +244,7 @@ async function runScheduler(force = false) {
                                 timestamp: Date.now()
                             });
 
-                            const options = {
-                                vapidDetails: {
-                                    subject: VAPID_EMAIL,
-                                    publicKey: VAPID_PUBLIC,
-                                    privateKey: VAPID_PRIVATE
-                                },
+                             const options = {
                                 TTL: 24 * 60 * 60, // 24 hours
                                 urgency: 'high'
                             };

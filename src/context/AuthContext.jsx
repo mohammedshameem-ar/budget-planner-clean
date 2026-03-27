@@ -49,10 +49,18 @@ export const AuthProvider = ({ children }) => {
       let subscription = await registration.pushManager.getSubscription();
 
       // If forcing, explicitly unsubscribe first to get clean keys
-      if (force && subscription) {
-        console.log('[Auth] Force re-subscribe: Unsubscribing existing...');
-        await subscription.unsubscribe();
-        subscription = null;
+      if (force) {
+        console.log('[Auth] Force re-subscribe: Cleaning up all existing subscriptions...');
+        const { resetPushSubscriptions } = await import('../api/push');
+        
+        // 1. Unsubscribe local SW if possible
+        if (subscription) {
+            await subscription.unsubscribe();
+            subscription = null;
+        }
+
+        // 2. Wipe the backend collection for this user to ensure NO stale tokens remain
+        await resetPushSubscriptions(userId).catch(e => console.error('[Auth] Failed to wipe backend subs:', e));
       }
 
       const { getVapidPublicKey, subscribeToPush } = await import('../api/push');

@@ -47,8 +47,8 @@ let vapidEmailRaw = process.env.VAPID_EMAIL || 'mailto:admin@budgetwise.app';
 if (vapidEmailRaw && !vapidEmailRaw.startsWith('mailto:') && !vapidEmailRaw.startsWith('http')) {
     vapidEmailRaw = `mailto:${vapidEmailRaw}`;
 }
-const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M';
-const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'Nu1ixngRDtZgLxCtNGlQGv3aUsZmwjH3QIRjA8v0jI0';
+const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BN2C6tcs6OyhPqvI8bZzsn2d-SsicZDOhjf4lAUSR4mlJIfcKv9JKqq19UFjdBNMwseDrC_UOq9k1taqHo3pmmI';
+const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'A8jnngta4_lqRlJ663EYOfupGelrhq-CbsFTmqiI1vg';
 
 try {
     webpush.setVapidDetails(vapidEmailRaw, publicVapidKey, privateVapidKey);
@@ -159,11 +159,6 @@ app.post('/api/test-notification', async (req, res) => {
         });
 
         const options = {
-            vapidDetails: {
-                subject: process.env.VAPID_EMAIL || 'shameemsc@gmail.com',
-                publicKey: process.env.VAPID_PUBLIC_KEY || 'BHzkrEBTFz7BYesVUVnnymS-INpyRibtu7r3rlWURmDim2BcjtDBdna4-cXXpiBQv1xlerGT83jp_VqOQ6glE5M',
-                privateKey: process.env.VAPID_PRIVATE_KEY
-            },
             TTL: 24 * 60 * 60,
             urgency: 'high'
         };
@@ -185,12 +180,12 @@ app.post('/api/test-notification', async (req, res) => {
                     console.log(`[Test] Deleting expired/invalid subscription doc: ${doc.id}`);
                     await doc.ref.delete();
                 }
-                results.push({ success: false, error: err.message, endpoint: sub.endpoint });
+                results.push({ success: false, error: err.message, status: err.statusCode, endpoint: sub.endpoint });
                 failureCount++;
             }
         }
         console.log(`[Test] Result for user ${userId}: ${successCount} success, ${failureCount} failure`);
-        res.json({ results, successCount, failureCount, endpoints });
+        res.json({ results, successCount, failureCount, endpoints, errorSummary: results.map(r => `[Status ${r.status || '???'}] ${r.error}`).join(' | ') });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

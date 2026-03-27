@@ -238,6 +238,7 @@ const Settings = () => {
             const summary = `✅ Test complete!\n\n` +
                           `• Sent to: ${result.successCount} device(s)\n` +
                           `• Failed on: ${result.failureCount} device(s)\n\n` +
+                          (result.errorSummary ? `⚠️ Errors: ${result.errorSummary}\n\n` : '') +
                           (result.endpoints?.length > 0 ? `Endpoints:\n${result.endpoints.map(e => '• ' + e.substring(0, 30) + '...').join('\n')}` : 'No active endpoints found.');
 
             if (result.failureCount > 0) {
