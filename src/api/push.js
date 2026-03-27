@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://budget-planner-clean.onrender.com/api';
 
 export const getVapidPublicKey = async () => {
     try {

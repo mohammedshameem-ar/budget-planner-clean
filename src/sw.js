@@ -134,7 +134,7 @@ self.addEventListener('notificationclose', (event) => {
 self.addEventListener('pushsubscriptionchange', (event) => {
     console.log('[SW] Push subscription changed (key rotation). Re-subscribing...');
 
-    const API_URL = 'https://budget-planner-clean-1.onrender.com/api';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://budget-planner-clean.onrender.com/api';
 
     event.waitUntil(
         (async () => {
