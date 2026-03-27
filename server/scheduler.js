@@ -64,16 +64,19 @@ async function runScheduler(force = false) {
                             minute: '2-digit',
                             hour12: false
                         };
-                        const currentLocalTimeRaw = new Intl.DateTimeFormat('en-US', formatOptions).format(nowJS);
+                        // Use en-GB for consistent HH:mm format without AM/PM or 24:00 glitches
+                        const currentLocalTimeRaw = new Intl.DateTimeFormat('en-GB', formatOptions).format(nowJS);
                         const currentLocalTime = currentLocalTimeRaw.replace(/[^\d:]/g, '');
 
                         const todayStr = new Intl.DateTimeFormat('fr-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowJS);
                         const normalizedReminderTime = reminderTime.replace(/[^\d:]/g, '');
 
-                        // Only mark 'due' if we haven't already sent today (prevents double-send races).
-                        // Force-mode bypasses the time check but still respects the transaction lock.
-                        const timeMatches = (currentLocalTime === normalizedReminderTime);
-                        const notSentToday = (userData.dailyReminderLastSentDate !== todayStr);
+                        // CATCH-UP LOGIC:
+                        // Instead of exact minute match (===), we check if current time is >= reminder time.
+                        // Since we track 'dailyReminderLastSentDate', it will only fire ONCE per day,
+                        // even if the server wakes up late (e.g. scheduled 08:00, wakes up 08:05).
+                        const timeMatches = (currentLocalTime >= normalizedReminderTime);
+                        const notSentToday = (userData.dailyReminderLastSentDate !== todayStr || !userData.dailyReminderLastSentDate);
                         const due = force ? true : (timeMatches && notSentToday);
 
                         if (due) {
@@ -84,9 +87,12 @@ async function runScheduler(force = false) {
                                 if (!userDocForTx.exists) return;
 
                                 const uData = userDocForTx.data();
+                                // Double check inside transaction to prevent double-send races
+                                const lastSentDate = uData.dailyReminderLastSentDate;
+                                
                                 if (force) {
                                     shouldSend = true;
-                                } else if (uData.dailyReminderLastSentDate !== todayStr) {
+                                } else if (lastSentDate !== todayStr) {
                                     t.update(userRef, {
                                         dailyReminderLastSent: now,
                                         dailyReminderLastSentDate: todayStr
@@ -96,7 +102,7 @@ async function runScheduler(force = false) {
                             });
 
                             if (shouldSend) {
-                                console.log(`[Scheduler] Sending Daily Summary for user ${userId}`);
+                                console.log(`[Scheduler] Sending Daily Summary for user ${userId} (Scheduled: ${normalizedReminderTime}, Actual: ${currentLocalTime})`);
                                 const txSnap = await userDoc.ref.collection('transactionDetails').doc('history').collection('userTransactions').get();
                                 const monthStr = todayStr.substring(0, 7);
 

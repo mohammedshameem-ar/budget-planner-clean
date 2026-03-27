@@ -100,8 +100,8 @@ const Reports = () => {
                 .filter(t => t.type === 'income')
                 .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 
-            // Fallback to global setting if no income transactions for the month
-            const displayIncome = monthIncome > 0 ? monthIncome : (activeIncome || 0);
+            // Sum both the baseline salary (activeIncome) and any specific income transactions
+            const displayIncome = (activeIncomeEnabled ? (activeIncome || 0) : 0) + monthIncome;
 
             let budgetLimitDisplay = `INR ${(activeBudgetLimit || 0).toLocaleString()}`;
             let budgetRemainingDisplay = `INR ${(activeBudgetLimit - totalExp || 0).toLocaleString()}`;
@@ -399,7 +399,7 @@ const Reports = () => {
                     <div style={{ textAlign: 'center' }}>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Income</p>
                         <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                            {activeIncomeEnabled ? `₹${activeIncome.toLocaleString()}` : 'None'}
+                            {activeIncomeEnabled ? `₹${((activeIncome || 0) + (activeTransactions.filter(t => t.date.startsWith(selectedMonth) && t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0))).toLocaleString()}` : 'None'}
                         </p>
                     </div>
                     <div style={{ textAlign: 'center' }}>

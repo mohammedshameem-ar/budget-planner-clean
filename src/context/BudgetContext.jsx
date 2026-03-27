@@ -620,14 +620,23 @@ export const BudgetProvider = ({ children }) => {
             })
             .reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
 
+        const currentMonthIncome = transactions
+            .filter(t => {
+                const transDate = new Date(t.date);
+                return t.type === 'income' && transDate >= startOfMonth;
+            })
+            .reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+
+        const combinedIncome = (incomeEnabled ? (income || 0) : 0);
+
         return {
             totalExpenses,
             monthExpenses: currentMonthExpenses, // Current month starting from 1st
-            totalIncome: incomeEnabled ? income : null,
+            totalIncome: incomeEnabled ? combinedIncome : null,
             budgetLimit: budgetEnabled ? budgetLimit : null,
             remainingBudget: budgetEnabled ? (budgetLimit - currentMonthExpenses) : null,
             totalSavings: savings,
-            availableBalance: (!incomeEnabled || !budgetEnabled) ? null : (income - budgetLimit - balanceContributedToSavings + carryOverBalance)
+            availableBalance: (!incomeEnabled || !budgetEnabled) ? null : (combinedIncome - budgetLimit - balanceContributedToSavings + carryOverBalance)
         };
     };
 

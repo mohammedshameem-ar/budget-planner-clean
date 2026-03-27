@@ -3,7 +3,7 @@ import { useBudget } from '../context/BudgetContext';
 import Modal from './Modal';
 
 const categories = [
-    'food', 'transport', 'utilities', 'entertainment', 'health', 'shopping', 'housing', 'salary', 'investment', 'savings', 'billings', 'recharges', 'others'
+    'food', 'transport', 'utilities', 'entertainment', 'health', 'shopping', 'housing', 'savings', 'billings', 'recharges', 'others'
 ];
 
 const TransactionForm = ({ onClose }) => {
@@ -15,6 +15,17 @@ const TransactionForm = ({ onClose }) => {
         date: new Date().toLocaleDateString('en-CA'),
         note: ''
     });
+
+    // Auto-switch type based on category
+    const handleCategoryChange = (cat) => {
+        let newType = formData.type;
+        if (cat === 'savings') {
+            newType = 'income';
+        } else {
+            newType = 'expense';
+        }
+        setFormData({ ...formData, category: cat, type: newType });
+    };
 
     const evaluateExpression = (expression) => {
         try {
@@ -43,7 +54,7 @@ const TransactionForm = ({ onClose }) => {
 
         addTransaction({
             amount: parseFloat(formData.amount),
-            type: 'expense', // Always expense
+            type: formData.type,
             category: formData.category,
             date: formData.date,
             note: formData.note
@@ -54,6 +65,29 @@ const TransactionForm = ({ onClose }) => {
     return (
         <Modal title="Add Transaction" onClose={onClose}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', background: 'var(--surface-light)', padding: '0.4rem', borderRadius: '12px', marginBottom: '0.5rem' }}>
+                    <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, type: 'expense', category: 'food' })}
+                        style={{
+                            flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none',
+                            background: formData.type === 'expense' ? 'var(--danger)' : 'transparent',
+                            color: formData.type === 'expense' ? 'white' : 'var(--text-muted)',
+                            fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease'
+                        }}
+                    >Expense</button>
+                    <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, type: 'income', category: 'savings' })}
+                        style={{
+                            flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none',
+                            background: formData.type === 'income' ? 'var(--success)' : 'transparent',
+                            color: formData.type === 'income' ? 'white' : 'var(--text-muted)',
+                            fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease'
+                        }}
+                    >Income</button>
+                </div>
+
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.8rem', fontSize: '0.95rem', fontWeight: '600' }}>Amount <span style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '400', display: 'block', marginTop: '0.2rem' }}>(allows calculation e.g. 10+20)</span></label>
                     <input
@@ -64,6 +98,7 @@ const TransactionForm = ({ onClose }) => {
                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                         onBlur={handleAmountBlur}
                         placeholder="0.00 or 10+20"
+                        style={{ fontSize: '1.2rem', padding: '0.8rem' }}
                     />
                 </div>
 
@@ -71,10 +106,16 @@ const TransactionForm = ({ onClose }) => {
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Category</label>
                     <select
                         value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
                         style={{ textTransform: 'capitalize' }}
                     >
-                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        {formData.type === 'income' ? (
+                            <option value="savings">Savings</option>
+                        ) : (
+                            categories
+                                .filter(c => !['salary', 'investment', 'savings'].includes(c))
+                                .map(c => <option key={c} value={c}>{c}</option>)
+                        )}
                     </select>
                 </div>
 
@@ -108,8 +149,8 @@ const TransactionForm = ({ onClose }) => {
                     />
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center' }}>
-                    Add Transaction
+                <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center', height: '48px', fontSize: '1rem' }}>
+                    Add {formData.type === 'income' ? 'Income' : 'Expense'}
                 </button>
             </form>
         </Modal>

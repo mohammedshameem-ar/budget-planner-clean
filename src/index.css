@@ -58,10 +58,10 @@
   --radius-xl: 30px;
 
   /* Theme Dependent */
-  --bg-canvas: #f0f4f8;
-  --app-bg: #f8fafc;
+  --bg-canvas: #f8fafc;
+  --app-bg: #f1f5f9;
   --sidebar-bg: #0f172a;
-  --sidebar-active: #1d418b;
+  --sidebar-active: #1e293b;
   /* Uniform Dark Blue */
   --sidebar-text: #94a3b8;
   --sidebar-text-active: #ffffff;
@@ -87,22 +87,25 @@
 }
 
 [data-theme='dark'] {
-  --bg-canvas: #0b1120;
-  --app-bg: #0f172a;
+  --bg-canvas: #0f172a;
+  --app-bg: radial-gradient(circle at top right, #1e293b, #0f172a);
   --sidebar-bg: #020617;
-  --sidebar-active: rgba(255, 255, 255, 0.05);
+  --sidebar-active: rgba(56, 189, 248, 0.1);
 
-  --surface: #0f172a;
-  --surface-light: #1e293b;
-  --text-main: #f1f5f9;
+  --surface: #1e293b;
+  --surface-light: #334155;
+  --text-main: #f8fafc;
   --text-muted: #94a3b8;
 
-  --glass-bg: rgba(15, 23, 42, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(56, 189, 248, 0.2);
   --glass-stroke: rgba(255, 255, 255, 0.05);
 
-  --nav-pill-bg: rgba(255, 255, 255, 0.05);
+  --nav-pill-bg: rgba(56, 189, 248, 0.05);
   --nav-inactive-text: #94a3b8;
+  
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.15);
 }
 
 
@@ -191,9 +194,11 @@ button {
 /* Clean Flat Panels (Image Reference) */
 .glass-panel {
   background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow);
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
   padding: 1.25rem;
