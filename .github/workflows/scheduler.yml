@@ -1,0 +1,21 @@
+name: BudgetWise Cron & Keep-Alive
+
+on:
+  schedule:
+    # Run every 20 minutes to keep Render alive and check scheduler
+    - cron: '*/20 * * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Scheduler Endpoint
+        run: |
+          curl -X POST https://budget-planner-clean.onrender.com/api/debug-run-scheduler \
+            -H "Content-Type: application/json" \
+            -H "x-admin-secret: ${{ secrets.ADMIN_SECRET || 'budgetwise-admin-2024' }}"
+      
+      - name: Hit Ping Endpoint (Secondary Wakeup)
+        run: |
+          curl https://budget-planner-clean.onrender.com/api/ping

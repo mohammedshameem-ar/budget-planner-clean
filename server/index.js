@@ -187,12 +187,20 @@ app.post('/api/test-notification', async (req, res) => {
     }
 });
 
-// Manual Scheduler Trigger (for debugging)
+// Manual Scheduler Trigger (exposed for GitHub Actions / Cron services)
 app.post('/api/debug-run-scheduler', async (req, res) => {
+    const secret = req.headers['x-admin-secret'];
+    const expectedSecret = process.env.ADMIN_SECRET || 'budgetwise-admin-2024';
+    
+    if (secret !== expectedSecret) {
+        console.warn('[Debug] Unauthorized scheduler trigger attempt');
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
     const { runScheduler } = require('./scheduler');
     try {
-        console.log('[Debug] Manually triggering scheduler...');
-        const results = await runScheduler(true);
+        console.log('[Debug] Authorized manual trigger received. Running scheduler...');
+        const results = await runScheduler(true); // force=true to ensure it checks all users immediately
         res.json({ message: 'Scheduler run complete', details: results });
     } catch (error) {
         console.error('[Debug] Manual scheduler run failed:', error);
