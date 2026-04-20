@@ -1,0 +1,23 @@
+graph TD
+    FirebaseHosting["Firebase Hosting"]
+    GitHubActions["GitHub Actions"]
+    Scheduler["Pings / Scheduler"]
+    Render["Render Host"]
+    ExpressServer["Express Server"]
+    Firestore["Cloud Firestore"]
+    FirebaseAuth["Firebase Auth"]
+    PushServices["Push Services (FCM / Safari)"]
+    ReactApp["Frontend React App"]
+
+    GitHubActions -.->|Deploys to| Render
+    Scheduler -->|Keeps awake| Render
+    Render --> ExpressServer
+
+    FirebaseHosting -->|Serves| ReactApp
+    
+    ExpressServer -->|Reads / Writes| Firestore
+    ExpressServer -->|Web Push| PushServices
+    PushServices -->|Delivers| ReactApp
+    
+    ReactApp -->|Data Sync| Firestore
+    ReactApp -->|Sign-In| FirebaseAuth

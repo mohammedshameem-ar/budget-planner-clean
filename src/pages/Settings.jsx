@@ -42,6 +42,7 @@ const Settings = () => {
     const [budgetSummaryEnabled, setBudgetSummaryEnabled] = useState(false);
     const [budgetSummaryTime, setBudgetSummaryTime] = useState('20:00');
     const [summaryCompact, setSummaryCompact] = useState(false);
+    const [testResult, setTestResult] = useState(null); // { success: boolean, message: string, detail?: string }
 
     // Load budget summary settings from local storage on mount
     useEffect(() => {
@@ -227,65 +228,56 @@ const Settings = () => {
 
     const handleTestNotification = async () => {
         if (!user) {
-            alert('Please log in to test notifications.');
+            setTestResult({ success: false, message: 'Please log in to test notifications.' });
             return;
         }
+        setTestResult({ success: true, message: 'Wait... sending test notification...', loading: true });
         try {
             console.log('Starting notification test...');
             const { sendTestNotification } = await import('../api/push');
             const result = await sendTestNotification(user.id);
             
-            const summary = `✅ Test complete!\n\n` +
-                          `• Sent to: ${result.successCount} device(s)\n` +
-                          `• Failed on: ${result.failureCount} device(s)\n\n` +
-                          (result.errorSummary ? `⚠️ Errors: ${result.errorSummary}\n\n` : '') +
-                          (result.endpoints?.length > 0 ? `Endpoints:\n${result.endpoints.map(e => '• ' + e.substring(0, 30) + '...').join('\n')}` : 'No active endpoints found.');
-
-            if (result.failureCount > 0) {
-                alert(`${summary}\n\n⚠️ Some devices failed to receive the notification. Check if you have multiple browsers and if they have notifications enabled.`);
+            if (result.successCount > 0) {
+                setTestResult({ 
+                    success: true, 
+                    message: `✅ Test successful! Sent to ${result.successCount} device(s).`,
+                    detail: result.failureCount > 0 ? `Note: ${result.failureCount} other devices failed.` : null
+                });
             } else {
-                alert(summary);
+                setTestResult({ 
+                    success: false, 
+                    message: `❌ Test failed. No devices received the notification.`,
+                    detail: result.errorSummary || 'Check if notifications are enabled in your browser.'
+                });
             }
+            
+            // Auto-clear after 10 seconds
+            setTimeout(() => setTestResult(null), 10000);
         } catch (e) {
             console.error('Test failed:', e);
-
-            // Check if the backend server is not running
-            if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('fetch'))) {
-                const API_BASE = import.meta.env.VITE_API_URL || 'https://budget-planner-clean-1.onrender.com/api';
-                alert(`❌ Cannot reach backend server at: ${API_BASE}\n\nPlease check if your Render backend is running and that your VITE_API_URL is correctly configured.`);
-                return;
+            let msg = `Error: ${e.message}`;
+            if (e.message?.includes('Failed to fetch')) {
+                msg = '❌ Cannot reach server. Please check your internet or Render dashboard.';
             }
-
-            if (e.message && e.message.includes('No subscriptions')) {
-                const retry = window.confirm('No subscription found on server. Attempt to subscribe now?');
-                if (retry) {
-                    try {
-                        alert('Please wait, subscribing...');
-                        await subscribeUserToPush(user.id);
-                        alert('Subscription attempt finished. Please try "Test Notification" again.');
-                    } catch (subError) {
-                        alert('Subscription failed: ' + subError.message);
-                    }
-                }
-            } else {
-                alert(`Error during test: ${e.message}`);
-            }
+            setTestResult({ success: false, message: msg });
+            setTimeout(() => setTestResult(null), 10000);
         }
     };
 
     const handleDebugScheduler = async () => {
+        setTestResult({ success: true, message: 'Triggering daily summary...', loading: true });
         try {
-            console.log('Starting manual scheduler run...');
             const { debugRunScheduler } = await import('../api/push');
             const result = await debugRunScheduler();
-            alert(`✅ Manual Scheduler Triggered!\n\n` +
-                  `• Status: ${result.message}\n` +
-                  `• Users Processed: ${result.details.processedCount}\n` +
-                  `• Notifications Sent: ${result.details.sentCount}\n\n` +
-                  `Check your device for the Daily Summary!`);
+            setTestResult({ 
+                success: true, 
+                message: `✅ Summary Triggered: ${result.message}`,
+                detail: `Processed ${result.details.processedCount} users, sent ${result.details.sentCount} notifications.`
+            });
+            setTimeout(() => setTestResult(null), 10000);
         } catch (e) {
-            console.error('Scheduler trigger failed:', e);
-            alert(`❌ Error: ${e.message}`);
+            setTestResult({ success: false, message: `❌ Scheduler Error: ${e.message}` });
+            setTimeout(() => setTestResult(null), 10000);
         }
     };
 
@@ -970,7 +962,9 @@ const Settings = () => {
                             <p style={{ margin: 0, fontWeight: '600', fontSize: '0.9rem' }}>🔔 {pushToast.title}</p>
                             <p style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{pushToast.body}</p>
                         </div>
-                        <button onClick={() => setPushToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}><X size={16} /></button>
+                        <button onClick={() => setPushToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}>
+                            <X size={16} />
+                        </button>
                     </div>
                 )}
 
@@ -980,6 +974,7 @@ const Settings = () => {
                         onClick={async () => {
                             const result = await requestNotificationPermission();
                             if (result === 'granted' && user) {
+                                const { subscribeUserToPush } = await import('../api/push');
                                 await subscribeUserToPush(user.id, true);
                                 setPushToast({ title: 'Notifications Enabled ✓', body: 'You will now receive budget summaries and reminders.' });
                                 pushToastTimer.current = setTimeout(() => setPushToast(null), 5000);
@@ -1006,6 +1001,7 @@ const Settings = () => {
                                 const existing = await reg.pushManager.getSubscription();
                                 if (existing) await existing.unsubscribe();
                             }
+                            const { subscribeUserToPush } = await import('../api/push');
                             await subscribeUserToPush(user.id, true);
                             setPushToast({ title: '✅ Re-subscribed', body: 'Fresh subscription registered. Test notification now.' });
                             pushToastTimer.current = setTimeout(() => setPushToast(null), 6000);
@@ -1040,6 +1036,46 @@ const Settings = () => {
                         <RefreshCw size={18} /> Force Run Daily Summary
                     </button>
                 </div>
+
+                {/* Inline Test Results */}
+                {testResult && (
+                    <div className="animate-fade-in" style={{
+                        marginTop: '1rem',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        background: testResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        border: `1px solid ${testResult.success ? 'var(--success)' : 'var(--danger)'}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.4rem',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ 
+                                fontWeight: '600', 
+                                color: testResult.success ? 'var(--success)' : 'var(--danger)',
+                                fontSize: '0.95rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                {testResult.loading && <RefreshCw size={14} className="animate-spin" />}
+                                {testResult.message}
+                            </span>
+                            <button 
+                                onClick={() => setTestResult(null)}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                        {testResult.detail && (
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                {testResult.detail}
+                            </p>
+                        )}
+                    </div>
+                )}
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
                     If notifications are broken: click "Force Re-subscribe" then "Test Notification".
                 </p>

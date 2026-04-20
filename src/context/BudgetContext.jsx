@@ -26,8 +26,14 @@ export const BudgetProvider = ({ children }) => {
     const [budgetLimit, setBudgetLimit] = useState(0);
 
     const [income, setIncome] = useState(0);
-    const [incomeEnabled, setIncomeEnabled] = useState(true);
-    const [budgetEnabled, setBudgetEnabled] = useState(true);
+    const [incomeEnabled, setIncomeEnabled] = useState(() => {
+        const saved = localStorage.getItem('budgetwise_incomeEnabled');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    const [budgetEnabled, setBudgetEnabled] = useState(() => {
+        const saved = localStorage.getItem('budgetwise_budgetEnabled');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
     const [savings, setSavings] = useState(0);
     const [balanceContributedToSavings, setBalanceContributedToSavings] = useState(0);
     const [carryOverBalance, setCarryOverBalance] = useState(0);
@@ -55,6 +61,11 @@ export const BudgetProvider = ({ children }) => {
 
         const unsubscribe = onSnapshot(profileRef, async (profileSnap) => {
             try {
+                // If this is an empty cache hit from offline startup, wait for the server
+                if (!profileSnap.exists() && profileSnap.metadata.fromCache) {
+                    return;
+                }
+
                 let data = profileSnap.data();
 
                 // Migration Strategy:
@@ -137,8 +148,13 @@ export const BudgetProvider = ({ children }) => {
                     setCarryOverBalance(currentCarryOverBalance);
                     setSavings(data.savings || 0);
                     setBalanceContributedToSavings(currentBalanceContributedToSavings);
-                    setIncomeEnabled(data.incomeEnabled !== false);
-                    setBudgetEnabled(data.budgetEnabled !== false);
+                    const incEn = data.incomeEnabled !== false;
+                    const budEn = data.budgetEnabled !== false;
+
+                    setIncomeEnabled(incEn);
+                    setBudgetEnabled(budEn);
+                    localStorage.setItem('budgetwise_incomeEnabled', JSON.stringify(incEn));
+                    localStorage.setItem('budgetwise_budgetEnabled', JSON.stringify(budEn));
                     setAvatar(data.avatar || 'default');
                 } else {
                     // Initialize if completely new
@@ -422,6 +438,7 @@ export const BudgetProvider = ({ children }) => {
                 updatedAt: Timestamp.now()
             }, { merge: true });
             setIncomeEnabled(value);
+            localStorage.setItem('budgetwise_incomeEnabled', JSON.stringify(value));
         } catch (error) {
             console.error('Error updating incomeEnabled:', error);
             throw error;
@@ -437,6 +454,7 @@ export const BudgetProvider = ({ children }) => {
                 updatedAt: Timestamp.now()
             }, { merge: true });
             setBudgetEnabled(value);
+            localStorage.setItem('budgetwise_budgetEnabled', JSON.stringify(value));
         } catch (error) {
             console.error('Error updating budgetEnabled:', error);
             throw error;
