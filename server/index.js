@@ -139,14 +139,17 @@ app.post('/api/test-notification', async (req, res) => {
         }
 
         // Simplified Notification Logic
-        const body = `Total spend:   \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}\n` +
-                     `Monthly spend: \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}\n` +
-                     `Savings:       \u20b9${savings.toLocaleString('en-IN')}`;
+        const bodyLines = [
+            `Total spend:   \u20b9${Math.max(0, totalSpentToday).toLocaleString('en-IN')}`,
+            `Monthly spend: \u20b9${Math.max(0, totalSpentMonth).toLocaleString('en-IN')}`,
+        ];
+        if (savings > 0) bodyLines.push(`Savings:       \u20b9${savings.toLocaleString('en-IN')}`);
+        const body = bodyLines.join('\n');
 
         const payload = JSON.stringify({
-            title: 'BudgetWise summary',
+            title: 'BudgetWise Summary',
             body: body,
-            tag: `test-${todayStr}`,
+            tag: `test-summary-${Date.now()}`,
             icon: 'https://news-9d3d2.web.app/logo.svg',
             badge: 'https://news-9d3d2.web.app/logo.svg',
             vibrate: [200, 100, 200],
